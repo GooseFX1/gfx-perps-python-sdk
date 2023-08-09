@@ -3,10 +3,10 @@ from .account_tag import AccountTag
 #from .action_status import ActionStatus
 from .bitset import Bitset
 #from .call_back_info import CallBackInfo
-#from .cancel_order_params import CancelOrderParams
-#from .clear_expired_orderbook_params import ClearExpiredOrderbookParams
+from .cancel_order_params import CancelOrderParams
+from .clear_expired_orderbook_params import ClearExpiredOrderbookParams
 #from .combo import Combo
-#from .consume_orderbook_events_params import ConsumeOrderbookEventsParams
+from .consume_orderbook_events_params import ConsumeOrderbookEventsParams
 #from .deposit_funds_params import DepositFundsParams
 #from .dex_error import DexError
 from .fractional import Fractional
