@@ -1,0 +1,19 @@
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+[project]
+name = "gfx_perp_python_sdk"
+version = "0.0.8"
+authors = [
+  { name="Shashank Shekhar", email="shashank@goosefx.io" },
+]
+description = "Python SDK for perps trading"
+readme = "README.md"
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/GooseFX1/gfx-perp-python-sdk"
