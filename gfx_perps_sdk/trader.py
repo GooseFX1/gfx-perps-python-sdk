@@ -61,8 +61,10 @@ class Trader(Perp):
             risk_signer=utils.getRiskSigner(self.ADDRESSES["MPG_ID"], self.ADDRESSES["DEX_ID"]),
             trader_risk_state_acct=trader_risk_state_acct.public_key,
             trader_fee_state_acct=utils.get_trader_fee_state_acct(trg.public_key,self.ADDRESSES["MPG_ID"],self.ADDRESSES["FEES_ID"]),
-            risk_engine_program=self.ADDRESSES["MPG_ID"],
-            system_program=SYS_PROGRAM_ID
+            risk_engine_program=self.ADDRESSES["RISK_ID"],
+            referral_key=PublicKey("11111111111111111111111111111111"),
+            system_program=SYS_PROGRAM_ID,
+            program_id=self.ADDRESSES["DEX_ID"]
         )
         # signers = list(trader_risk_state_acct )
         # signers.append(trg)
@@ -76,8 +78,8 @@ class Trader(Perp):
         transaction.add_signer(trg)
         transaction.add_signer(self.wallet)
         result = transaction.verify_signatures()
-        result = self.connection.simulate_transaction(transaction)
-        #result = self.connection.send_transaction(transaction, self.wallet, trg, trader_risk_state_acct, opts=types.TxOpts(skip_preflight=True))
+        #result = self.connection.simulate_transaction(transaction)
+        result = self.connection.send_transaction(transaction, self.wallet, trg, trader_risk_state_acct, opts=types.TxOpts(skip_preflight=True))
         print("Transaction response: ", result)
 
 

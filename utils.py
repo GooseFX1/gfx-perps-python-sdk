@@ -123,7 +123,7 @@ def initialize_trader_fee_acct(
         )
 
     trader_fee_acct = get_trader_fee_state_acct(
-        payer,
+        trader_risk_group,
         market_product_group,
         program_id,
     )

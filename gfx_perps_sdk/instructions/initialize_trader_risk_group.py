@@ -32,6 +32,7 @@ class InitializeTraderRiskGroupIx:
     trader_fee_state_acct: AccountMeta
     risk_engine_program: AccountMeta
     system_program: AccountMeta
+    referral_key: AccountMeta
     remaining_accounts: Optional[List[AccountMeta]]
 
     def to_instruction(self):
@@ -44,6 +45,7 @@ class InitializeTraderRiskGroupIx:
         keys.append(self.trader_fee_state_acct)
         keys.append(self.risk_engine_program)
         keys.append(self.system_program)
+        keys.append(self.referral_key)
         if self.remaining_accounts is not None:
             keys.extend(self.remaining_accounts)
 
@@ -68,9 +70,10 @@ def initialize_trader_risk_group(
     trader_risk_state_acct: Union[str, PublicKey, AccountMeta],
     trader_fee_state_acct: Union[str, PublicKey, AccountMeta],
     risk_engine_program: Union[str, PublicKey, AccountMeta],
+    referral_key: Union[str, PublicKey, AccountMeta],
     system_program: Union[str, PublicKey, AccountMeta] = PublicKey("11111111111111111111111111111111"),
     remaining_accounts: Optional[List[AccountMeta]] = None,
-    program_id: Optional[PublicKey] = None,
+    program_id: Optional[PublicKey] = None
 ):
     if program_id is None:
         program_id = PublicKey("Dex1111111111111111111111111111111111111111")
@@ -124,6 +127,13 @@ def initialize_trader_risk_group(
             is_writable=False,
         )
 
+    if isinstance(referral_key, (str, PublicKey)):
+        referral_key = to_account_meta(
+            referral_key,
+            is_signer=False,
+            is_writable=False,
+        )
+
     return InitializeTraderRiskGroupIx(
         program_id=program_id,
         owner=owner,
@@ -134,6 +144,7 @@ def initialize_trader_risk_group(
         trader_fee_state_acct=trader_fee_state_acct,
         risk_engine_program=risk_engine_program,
         system_program=system_program,
+        referral_key=referral_key,
         remaining_accounts=remaining_accounts,
     ).to_instruction()
 

@@ -59,7 +59,7 @@ def initialize_trader_acct_ix(
 ) -> TransactionInstruction:
     keys = [
         AccountMeta(pubkey=payer, is_signer=True, is_writable=False),
-        AccountMeta(pubkey=fee_model_config_acct, is_signer=False, is_writable=False),
+        #AccountMeta(pubkey=fee_model_config_acct, is_signer=False, is_writable=False),
         AccountMeta(pubkey=trader_fee_acct, is_signer=False, is_writable=True),
         AccountMeta(pubkey=market_product_group, is_signer=False, is_writable=False),
         AccountMeta(pubkey=trader_risk_group, is_signer=False, is_writable=False),

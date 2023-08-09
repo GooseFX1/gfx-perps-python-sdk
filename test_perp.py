@@ -17,7 +17,7 @@ async def test_init():
     Prod.init_by_name('SOL-PERP')
     r = await Prod.get_orderbook_L3()
     t = Trader(Perps) 
-    t.init()
+    #t.init()
     t.create_trader_account_ixs()
 
     assert 1 == 0
