@@ -15,6 +15,7 @@ class OrderType(Enum[AutoTagType]):
     IMMEDIATE_OR_CANCEL = None
     FILL_OR_KILL = None
     POST_ONLY = None
+    MARKET = None
     # LOCK-END
 
     @classmethod

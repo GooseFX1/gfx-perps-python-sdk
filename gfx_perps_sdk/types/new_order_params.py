@@ -1,7 +1,7 @@
 # LOCK-BEGIN[imports]: DON'T MODIFY
-from dexterity.codegen.dex.types.fractional import Fractional
-from dexterity.codegen.dex.types.order_type import OrderType
-from dexterity.utils.aob.state.base import (
+from ..types.fractional import Fractional
+from ..types.order_type import OrderType
+from .base import (
     SelfTradeBehavior,
     Side,
 )

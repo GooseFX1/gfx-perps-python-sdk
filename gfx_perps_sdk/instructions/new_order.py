@@ -1,7 +1,7 @@
 # LOCK-BEGIN[imports]: DON'T MODIFY
 from .instruction_tag import InstructionTag
 from dataclasses import dataclass
-from dexterity.codegen.dex.types import NewOrderParams
+from ..types import NewOrderParams
 from io import BytesIO
 from podite import BYTES_CATALOG
 from solana.publickey import PublicKey
@@ -110,12 +110,11 @@ def new_order(
     trader_risk_state_acct: Union[str, PublicKey, AccountMeta],
     risk_and_fee_signer: Union[str, PublicKey, AccountMeta],
     params: NewOrderParams,
-    system_program: Union[str, PublicKey, AccountMeta] = PublicKey("11111111111111111111111111111111"),
+    program_id: PublicKey,
+    system_program: Union[str, PublicKey, AccountMeta],
     remaining_accounts: Optional[List[AccountMeta]] = None,
-    program_id: Optional[PublicKey] = None,
+
 ):
-    if program_id is None:
-        program_id = PublicKey("Dex1111111111111111111111111111111111111111")
 
     if isinstance(user, (str, PublicKey)):
         user = to_account_meta(

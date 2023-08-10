@@ -1,5 +1,5 @@
 # LOCK-BEGIN[imports]: DON'T MODIFY
-from dexterity.codegen.dex.types.fractional import Fractional
+from ..types.fractional import Fractional
 from podite import pod
 
 # LOCK-END

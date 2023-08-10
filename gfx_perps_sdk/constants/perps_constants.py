@@ -29,6 +29,7 @@ ADDRESSES: Network = {
         "VAULT_SEED": "market_vault",
         "FEES_SEED": "fee_model_config_acct",
         "TRADER_FEE_ACCT_SEED": "trader_fee_acct",
+        "BUDDY_LINK_PROGRAM": PublicKey("BUDDYtQp7Di1xfojiCSVDksiYLQx511DPdj2nbtG9Yu5")
     },
     "DEVNET": {
         "MPG_ID": PublicKey("BFqj3JFXV92vrBLhmXnLM2Dkkg9VJN6k8NbGoTxxeiUv"),
@@ -55,6 +56,7 @@ ADDRESSES: Network = {
         "VAULT_SEED": "market_vault",
         "FEES_SEED": "fee_model_config_acct",
         "TRADER_FEE_ACCT_SEED": "trader_fee_acct",
+        "BUDDY_LINK_PROGRAM": PublicKey("9zE4EQ5tJbEeMYwtS2w8KrSHTtTW4UPqwfbBSEkUrNCA")
     }
 }
 

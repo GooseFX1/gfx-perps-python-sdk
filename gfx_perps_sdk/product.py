@@ -63,7 +63,7 @@ class Product(Perp):
              self.ADDRESSES['DEX_ID']
         )
 
-    async def get_orderbook_L2(self):
+    def get_orderbook_L2(self):
         try:
             if len(self.name) < 1:
               raise ModuleNotFoundError("Please initialize with the right Product first...")
@@ -84,7 +84,7 @@ class Product(Perp):
         processedData = utils.processOrderbook(obBids, obAsks, self.tick_size, self.decimals)
         return processedData
 
-    async def get_orderbook_L3(self):
+    def get_orderbook_L3(self):
         try:
             if len(self.name) < 1:
               raise ModuleNotFoundError("Please initialize with the right Product first...")
@@ -126,7 +126,7 @@ class Product(Perp):
           })
       
         result = utils.processL3Ob(result['bids'], result['asks'], self.tick_size, self.decimals)
-        return result
+        return result    
     def get_trades(self):
         print('get_trades')
 

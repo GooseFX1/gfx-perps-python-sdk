@@ -7,7 +7,7 @@ from .cancel_order_params import CancelOrderParams
 from .clear_expired_orderbook_params import ClearExpiredOrderbookParams
 #from .combo import Combo
 from .consume_orderbook_events_params import ConsumeOrderbookEventsParams
-#from .deposit_funds_params import DepositFundsParams
+from .deposit_funds_params import DepositFundsParams
 #from .dex_error import DexError
 from .fractional import Fractional
 #from .health_info import HealthInfo
@@ -19,13 +19,14 @@ from .fractional import Fractional
 #from .leg import Leg
 #from .liquidation_info import LiquidationInfo
 from .market_product_group import MarketProductGroup
-#from .new_order_params import NewOrderParams
+from .new_order_params import NewOrderParams
+from .base import (Side, SelfTradeBehavior)
 #from .open_orders import OpenOrders
 #from .open_orders_metadata import OpenOrdersMetadata
 #from .open_orders_node import OpenOrdersNode
 #from .operation_type import OperationType
 #from .order_info import OrderInfo
-#from .order_type import OrderType
+from .order_type import OrderType
 from .outright import Outright
 #from .params import Params
 from .price_ewma import PriceEwma
@@ -41,6 +42,6 @@ from .product_metadata import ProductMetadata
 from .trader_risk_group import TraderRiskGroup
 #from .update_product_funding_params import UpdateProductFundingParams
 #from .util_error import UtilError
-#from .withdraw_funds_params import WithdrawFundsParams
+from .withdraw_funds_params import WithdrawFundsParams
 from .solana_pubkey import Solana_pubkey
 # LOCK-END

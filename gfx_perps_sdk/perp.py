@@ -46,6 +46,7 @@ class ConstantIDs:
     VAULT_SEED: str
     FEES_SEED: str
     TRADER_FEE_ACCT_SEED: str
+    BUDDY_LINK_PROGRAM: PublicKey
     PRODUCTS: List[Product_Type] = field(default_factory=list)
 class Perp:
     marketProductGroup: MarketProductGroup

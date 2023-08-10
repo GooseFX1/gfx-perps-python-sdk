@@ -1,7 +1,7 @@
 # LOCK-BEGIN[imports]: DON'T MODIFY
 from .instruction_tag import InstructionTag
 from dataclasses import dataclass
-from dexterity.codegen.dex.types import WithdrawFundsParams
+from ..types import WithdrawFundsParams
 from io import BytesIO
 from podite import BYTES_CATALOG
 from solana.publickey import PublicKey
@@ -26,6 +26,7 @@ class WithdrawFundsIx:
 
     # account metas
     token_program: AccountMeta
+    buddy_link_program: AccountMeta
     user: AccountMeta
     user_token_account: AccountMeta
     trader_risk_group: AccountMeta
@@ -44,6 +45,7 @@ class WithdrawFundsIx:
     def to_instruction(self):
         keys = []
         keys.append(self.token_program)
+        keys.append(self.buddy_link_program)
         keys.append(self.user)
         keys.append(self.user_token_account)
         keys.append(self.trader_risk_group)
@@ -73,6 +75,7 @@ class WithdrawFundsIx:
 # LOCK-BEGIN[ix_fn(withdraw_funds)]: DON'T MODIFY
 def withdraw_funds(
     user: Union[str, PublicKey, AccountMeta],
+    buddy_link_program: Union[str, PublicKey, AccountMeta],
     user_token_account: Union[str, PublicKey, AccountMeta],
     trader_risk_group: Union[str, PublicKey, AccountMeta],
     market_product_group: Union[str, PublicKey, AccountMeta],
@@ -83,19 +86,25 @@ def withdraw_funds(
     trader_risk_state_acct: Union[str, PublicKey, AccountMeta],
     risk_signer: Union[str, PublicKey, AccountMeta],
     params: WithdrawFundsParams,
+    program_id: Union[str, PublicKey, AccountMeta],
+    remaining_accounts: List[PublicKey],
     token_program: Union[str, PublicKey, AccountMeta] = PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"),
-    remaining_accounts: Optional[List[AccountMeta]] = None,
-    program_id: Optional[PublicKey] = None,
-):
-    if program_id is None:
-        program_id = PublicKey("Dex1111111111111111111111111111111111111111")
 
+):
     if isinstance(token_program, (str, PublicKey)):
         token_program = to_account_meta(
             token_program,
             is_signer=False,
             is_writable=False,
         )
+
+    if isinstance(buddy_link_program, (str, PublicKey)):
+        buddy_link_program = to_account_meta(
+            buddy_link_program,
+            is_signer=False,
+            is_writable=False,
+        )
+
     if isinstance(user, (str, PublicKey)):
         user = to_account_meta(
             user,
@@ -156,10 +165,20 @@ def withdraw_funds(
             is_signer=False,
             is_writable=False,
         )
+    remaining_metas: List[AccountMeta] = []
+    for accounts in remaining_accounts:
+        if isinstance(accounts, (str, PublicKey)):
+            account = to_account_meta(
+                accounts,
+                is_signer=False,
+                is_writable=False,
+            )
+            remaining_metas.append(account)
 
     return WithdrawFundsIx(
         program_id=program_id,
         token_program=token_program,
+        buddy_link_program=buddy_link_program,
         user=user,
         user_token_account=user_token_account,
         trader_risk_group=trader_risk_group,
@@ -170,7 +189,7 @@ def withdraw_funds(
         risk_output_register=risk_output_register,
         trader_risk_state_acct=trader_risk_state_acct,
         risk_signer=risk_signer,
-        remaining_accounts=remaining_accounts,
+        remaining_accounts=remaining_metas,
         params=params,
     ).to_instruction()
 

@@ -53,7 +53,6 @@ def processL3Ob(bidsParam, asksParams, tickSize, decimals):
 
 def getTraderRiskGroup(wallet: PublicKey, connection: Client,DEX_ID: PublicKey, MPG_ID: PublicKey):
     try:  
-        print("wallet: ", wallet)
         m1 = [MemcmpOpts(48, wallet.to_base58().decode("utf-8"))]
         m1.append(MemcmpOpts(16, MPG_ID.to_base58().decode("utf-8")))
         res = connection.get_program_accounts(DEX_ID,"confirmed", "jsonParsed",memcmp_opts=m1
@@ -67,15 +66,15 @@ def getTraderRiskGroup(wallet: PublicKey, connection: Client,DEX_ID: PublicKey, 
         return None
     
 def getUserAta(wallet: PublicKey, vault_mint: PublicKey):
-    return PublicKey.find_program_address([wallet._key, bytes("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",encoding="utf-8"), vault_mint._key]
-                                          ,PublicKey("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"))
+    return PublicKey.find_program_address([wallet._key, PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA")._key, vault_mint._key]
+                                          ,PublicKey("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"))[0]
 
 def getMpgVault(  
         VAULT_SEED: str,
         MPG_ID: PublicKey,
         DEX_ID: PublicKey):
     return PublicKey.find_program_address([bytes(VAULT_SEED,encoding="utf-8"), MPG_ID._key]
-            , DEX_ID)
+            , DEX_ID)[0]
 
 def get_fee_model_configuration_addr(
         market_product_group_key: PublicKey,
@@ -158,3 +157,26 @@ def get_trader_fee_state_acct(
         program_id=program_id,
     )
     return key
+
+
+def filterOpenOrders(l3ob, trader: str):
+    result = {}
+    result["bids"] = []
+    result['asks'] = []
+
+    for bids in l3ob['bids']:
+        if bids["user"] == trader:
+            result["bids"].append({
+                "price": bids["price"],
+                "size": bids["size"],
+                "orderId": bids["orderId"]
+            })
+
+    for asks in l3ob['asks']:
+        if asks["user"] == trader:
+            result["asks"].append({
+                "price": asks["price"],
+                "size": asks["size"],
+                "orderId": asks["orderId"]
+            })
+    return result

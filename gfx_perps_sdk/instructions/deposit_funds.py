@@ -1,7 +1,7 @@
 # LOCK-BEGIN[imports]: DON'T MODIFY
 from .instruction_tag import InstructionTag
 from dataclasses import dataclass
-from dexterity.codegen.dex.types import DepositFundsParams
+from ..types import DepositFundsParams
 from io import BytesIO
 from podite import BYTES_CATALOG
 from solana.publickey import PublicKey
@@ -68,12 +68,9 @@ def deposit_funds(
     market_product_group: Union[str, PublicKey, AccountMeta],
     market_product_group_vault: Union[str, PublicKey, AccountMeta],
     params: DepositFundsParams,
+    program_id: Union[str, PublicKey, AccountMeta],
     token_program: Union[str, PublicKey, AccountMeta] = PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"),
-    remaining_accounts: Optional[List[AccountMeta]] = None,
-    program_id: Optional[PublicKey] = None,
 ):
-    if program_id is None:
-        program_id = PublicKey("Dex1111111111111111111111111111111111111111")
 
     if isinstance(token_program, (str, PublicKey)):
         token_program = to_account_meta(
@@ -120,7 +117,7 @@ def deposit_funds(
         trader_risk_group=trader_risk_group,
         market_product_group=market_product_group,
         market_product_group_vault=market_product_group_vault,
-        remaining_accounts=remaining_accounts,
+        remaining_accounts=None,
         params=params,
     ).to_instruction()
 

@@ -98,12 +98,10 @@ def cancel_order(
     trader_risk_state_acct: Union[str, PublicKey, AccountMeta],
     risk_signer: Union[str, PublicKey, AccountMeta],
     params: CancelOrderParams,
-    system_program: Union[str, PublicKey, AccountMeta] = PublicKey("11111111111111111111111111111111"),
+    program_id: PublicKey,
+    system_program: Union[str, PublicKey, AccountMeta],
     remaining_accounts: Optional[List[AccountMeta]] = None,
-    program_id: Optional[PublicKey] = None,
 ):
-    if program_id is None:
-        program_id = PublicKey("Dex1111111111111111111111111111111111111111")
 
     if isinstance(user, (str, PublicKey)):
         user = to_account_meta(
