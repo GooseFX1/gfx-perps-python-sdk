@@ -20,6 +20,10 @@ class TraderPosition:
     quantity: str
     averagePrice: str
     index: str
+    def __init__(self, quantity: Fractional, averagePrice: Fractional, index: int):
+        self.quantity = quantity
+        self.averagePrice = averagePrice
+        self.index = str(index)
 
 class Trader(Perp):
     traderRiskGroup: TraderRiskGroup
@@ -30,7 +34,7 @@ class Trader(Perp):
     totalDeposited: str
     totalWithdrawn: str
     marginAvailable: str
-    traderPositions: any
+    traderPositions: [TraderPosition]
     totalTradedVolume: str
 
     def __init__(self, perp: Perp):
@@ -98,6 +102,20 @@ class Trader(Perp):
             
             self.userTokenAccount = utils.getUserAta(self.wallet.public_key, self.ADDRESSES['VAULT_MINT'])
             self.marketProductGroupVault = utils.getMpgVault(self.ADDRESSES['VAULT_SEED'], self.ADDRESSES['MPG_ID'], self.ADDRESSES['DEX_ID'])
+            self.totalDeposited = trg.total_deposited.value / 100000
+            self.totalWithdrawn = trg.total_withdrawn.value / 100000
+            positions: [TraderPosition] = []
+            idx = 0
+            for trader_position in trg.trader_positions:
+                if PublicKey(Solana_pubkey.to_bytes(trader_position.product_key)) != SYS_PROGRAM_ID:
+                    positions.append(
+                        TraderPosition(trader_position.position.value / 100000, trg.avg_position[idx].price.value / 100, idx)
+                    )
+                idx = idx + 1
+            
+            self.traderPositions = positions
+            self.totalTradedVolume = trg.total_traded_volume.value
+
         except:
             raise KeyError("No Trader Risk Group account for this wallet. Please create a new one first.") 
         
@@ -214,5 +232,5 @@ class Trader(Perp):
         
         return [[ix1], [self.wallet]]
 
-    def refresh_data():
-        print('refresh_data')
+    def refresh_data(self):
+        self.init()

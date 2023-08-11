@@ -1,8 +1,12 @@
 from solana.publickey import PublicKey
+from solana.rpc.websocket_api import (connect, SolanaWsClientProtocol)
+from .constants import perps_constants
 from .perp import Perp
 from .agnostic import Slab
 import utils
 import base64
+import requests
+import json
 
 class Product(Perp):
     name: str
@@ -128,7 +132,32 @@ class Product(Perp):
         result = utils.processL3Ob(result['bids'], result['asks'], self.tick_size, self.decimals)
         return result    
     def get_trades(self):
-        print('get_trades')
+        req_param = {
+            'isDevnet': True if self.networkType == 'devnet' else False,
+            'pairName': self.name
+        }
+        res = requests.post(perps_constants.API_BASE + perps_constants.TRADE_HISTORY, json=req_param)
+        return json.loads(res.text)
+        
 
-    def subscribe_to_orderbook(self):
-        print('subscribe_to_orderbook')
+    async def subscribe_to_orderbook(self, changeFn):
+        wss = self.connection._provider.endpoint_uri.replace("https", "wss")
+        #cl = await connect(wss)
+        #await cl.account_subscribe(self.EVENT_QUEUE)
+        #i = 0
+        #while True:
+        #    res = await cl.recv()
+        #    print(i)
+        #    print(res)
+        #    i = i + 1
+        #async with connect(wss) as websocket:
+        #  await websocket.account_subscribe(self.EVENT_QUEUE)
+        #  first_resp = await websocket.recv()
+        #  print("result 1: ", first_resp)
+        #  #subscription_id = first_resp[0].result
+        #  async for idx, msg in enumerate(websocket):
+        #      if idx == 3:
+        #          break
+        #      print("i is: ", idx)
+        #      print(msg)
+          #await websocket.account_unsubscribe(subscription_id)

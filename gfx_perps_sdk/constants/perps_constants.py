@@ -60,6 +60,6 @@ ADDRESSES: Network = {
     }
 }
 
-API_BASE = "http://localhost:4000"
+API_BASE = "https://api-services.goosefx.io"
 
 TRADE_HISTORY = "/perps-apis/getTradeHistory"

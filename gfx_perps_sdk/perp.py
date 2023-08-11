@@ -74,7 +74,7 @@ class Perp:
       if mpgBytes:
           self.mpgBytes = mpgBytes
 
-    async def init(self):
+    def init(self):
         mpgId = self.ADDRESSES["MPG_ID"]
         response = self.connection.get_account_info(PublicKey(mpgId))
         try:
