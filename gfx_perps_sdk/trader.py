@@ -77,21 +77,7 @@ class Trader(Perp):
         # signers = list(trader_risk_state_acct )
         # signers.append(trg)
         # signers.append(self.wallet)
-        blockhash = self.connection.get_recent_blockhash(commitment="finalized")
-        transaction = Transaction(recent_blockhash=blockhash['result']['value']['blockhash'], 
-                                  fee_payer=self.wallet.public_key).add(ix1)
-        transaction.add(ix2)
-        transaction.add(ix3)
-        transaction.add_signer(trader_risk_state_acct)
-        transaction.add_signer(trg)
-        transaction.add_signer(self.wallet)
-        try:
-            #result = self.connection.simulate_transaction(transaction)
-            result = self.connection.send_transaction(transaction, self.wallet, trg, trader_risk_state_acct, opts=types.TxOpts(skip_preflight=True))
-            print("Transaction response: ", result)
-        except:
-            print("Error in sending transaction!")
-            return None
+        return [[ix1, ix2, ix3], [trader_risk_state_acct, trg, self.wallet]]
             
     def get_open_orders(self, product: Product):
         l3ob = product.get_orderbook_L3()
@@ -125,17 +111,7 @@ class Trader(Perp):
                 param,
                 self.ADDRESSES["DEX_ID"]
                 )
-        blockhash = self.connection.get_recent_blockhash(commitment="finalized")
-        transaction = Transaction(recent_blockhash=blockhash['result']['value']['blockhash'], 
-                                  fee_payer=self.wallet.public_key).add(ix1)
-        transaction.add_signer(self.wallet)
-        #try:
-        #result = self.connection.simulate_transaction(transaction)
-        result = self.connection.send_transaction(transaction, self.wallet, opts=types.TxOpts(skip_preflight=True))
-        print("Transaction response: ", result)
-        #except:
-        #    print("Error in sending transaction!")
-        #    return None
+        return [[ix1], [self.wallet]]
         
     def withdraw_funds_ix(self, amount: Fractional):
         param = WithdrawFundsParams(amount)
@@ -155,17 +131,7 @@ class Trader(Perp):
                 [SYS_PROGRAM_ID, SYS_PROGRAM_ID, SYS_PROGRAM_ID, SYS_PROGRAM_ID, SYS_PROGRAM_ID,
                  self.ADDRESSES["BUDDY_LINK_PROGRAM"], self.ADDRESSES["BUDDY_LINK_PROGRAM"], self.ADDRESSES["BUDDY_LINK_PROGRAM"] ]
                 )
-        blockhash = self.connection.get_recent_blockhash(commitment="finalized")
-        transaction = Transaction(recent_blockhash=blockhash['result']['value']['blockhash'], 
-                                  fee_payer=self.wallet.public_key).add(ix1)
-        transaction.add_signer(self.wallet)
-        #try:
-        #result = self.connection.simulate_transaction(transaction)
-        result = self.connection.send_transaction(transaction, self.wallet, opts=types.TxOpts(skip_preflight=True))
-        print("Transaction response: ", result)
-        #except:
-        #    print("Error in sending transaction!")
-        #    return None
+        return [[ix1], [self.wallet]]
 
     def new_order_ix(self, product: Product, size: Fractional,
          price: Fractional, side: str, order_type: str):
@@ -222,17 +188,7 @@ class Trader(Perp):
             self.ADDRESSES["DEX_ID"],
             SYS_PROGRAM_ID)
 
-        blockhash = self.connection.get_recent_blockhash(commitment="finalized")
-        transaction = Transaction(recent_blockhash=blockhash['result']['value']['blockhash'], 
-                                  fee_payer=self.wallet.public_key).add(ix1)
-        transaction.add_signer(self.wallet)
-        #try:
-        #result = self.connection.simulate_transaction(transaction)
-        result = self.connection.send_transaction(transaction, self.wallet, opts=types.TxOpts(skip_preflight=True))
-        print("Transaction response: ", result)
-        #except:
-        #    print("Error in sending transaction!")
-        #    return None
+        return [[ix1], [self.wallet]]
 
     def cancel_order_ix(self,product:Product, orderId):
         param = CancelOrderParams(orderId)
@@ -255,17 +211,8 @@ class Trader(Perp):
             param,
             self.ADDRESSES["DEX_ID"],
             SYS_PROGRAM_ID)
-        blockhash = self.connection.get_recent_blockhash(commitment="finalized")
-        transaction = Transaction(recent_blockhash=blockhash['result']['value']['blockhash'], 
-                                  fee_payer=self.wallet.public_key).add(ix1)
-        transaction.add_signer(self.wallet)
-        #try:
-        #result = self.connection.simulate_transaction(transaction)
-        result = self.connection.send_transaction(transaction, self.wallet, opts=types.TxOpts(skip_preflight=True))
-        print("Transaction response: ", result)
-        #except:
-        #    print("Error in sending transaction!")
-        #    return None
+        
+        return [[ix1], [self.wallet]]
 
     def refresh_data():
         print('refresh_data')
