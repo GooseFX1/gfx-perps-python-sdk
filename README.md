@@ -1,5 +1,5 @@
   <div align="center">
-  <img height="142" src="https://github.com/GooseFX1/gfx-web-app/blob/dev/public/img/assets/gfx_logo_gradient_lite.svg" />
+  <img height="142" src="https://media.goosefx.io/logos/GooseFX-light.png" />
   <h2>GooseFX Perpetual Futures SDK</h2>
 
   <h4>
@@ -17,7 +17,7 @@
   <br />
 </div>
 
-  # GooseFX perpetual futures SDK
+  # GooseFX Perpetual Futures SDK
 
   This SDK contains 3 classes to interact with the GooseFX on-chain perpetual futures. 
   * ``Perp``
