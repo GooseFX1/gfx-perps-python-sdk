@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='gfx_perp_python_sdk',
+    name='gfx_perps_sdk',
     version='0.0.9',
     url='https://github.com/GooseFX1/gfx-perp-python-sdk',
     author='Shashank Shekhar',
