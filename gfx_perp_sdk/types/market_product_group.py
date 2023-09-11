@@ -1,5 +1,5 @@
 # LOCK-BEGIN[imports]: DON'T MODIFY
-import gfx_perps_sdk.types as types
+import gfx_perp_sdk.types as types
 from .account_tag import AccountTag
 from .bitset import Bitset
 from .fractional import Fractional

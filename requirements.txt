@@ -1,3 +1,4 @@
 pytest==7.4.0
 solana==0.19.1
 solmate @ git+ssh://git@github.com/NAK1998/solmate.git@jhow/use-u64-for-enums
+numpy==1.25.2

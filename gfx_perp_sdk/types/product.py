@@ -12,7 +12,7 @@ from podite import (
 
 # LOCK-END
 
-import gfx_perps_sdk.types as types
+import gfx_perp_sdk.types as types
 
 
 # LOCK-BEGIN[class(Product)]: DON'T MODIFY
