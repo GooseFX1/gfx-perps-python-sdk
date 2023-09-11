@@ -1,9 +1,9 @@
-from gfx_perps_sdk import (Perp, Product, Trader)
+from gfx_perp_sdk import (Perp, Product, Trader)
 from solana.rpc.api import Client
 from solana.keypair import Keypair
 from solana.rpc import types
 from solana.transaction import Transaction, TransactionInstruction
-from gfx_perps_sdk.types import Fractional
+from gfx_perp_sdk.types import Fractional
 
 rpc_client = Client("https://omniscient-frequent-wish.solana-devnet.quiknode.pro/8b6a255ef55a6dbe95332ebe4f6d1545eae4d128/")
 keyp = Keypair.from_secret_key(bytes([]))
