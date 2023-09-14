@@ -6,7 +6,7 @@ from typing import Union
 from .perp import Perp
 from .product import Product
 from .types import (TraderRiskGroup, Fractional, Solana_pubkey, base, OrderType)
-import utils
+import gfx_perp_sdk.utils as utils
 from dataclasses import dataclass, field
 import base64
 from solana.rpc import types

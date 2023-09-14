@@ -10,7 +10,7 @@ setup(
     author='Shashank Shekhar',
     author_email='shashank@goosefx.io',
     description='Perp python sdk',
-    packages=['gfx_perp_sdk'],    
+    packages=find_packages(),
     install_requires=[
         'pytest'
     ],
