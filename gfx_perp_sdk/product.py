@@ -3,7 +3,7 @@ from solana.rpc.websocket_api import (connect, SolanaWsClientProtocol)
 from .constants import perps_constants
 from .perp import Perp
 from .agnostic import Slab
-import utils
+import gfx_perp_sdk.utils as utils
 import base64
 import requests
 import json
