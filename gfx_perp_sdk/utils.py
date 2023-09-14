@@ -2,7 +2,7 @@ from solana.publickey import PublicKey
 from solana.rpc.api import Client
 from solana.rpc.types import MemcmpOpts
 from solana.transaction import Transaction
-from gfx_perps_sdk.constant_instructions.instructions import initialize_trader_acct_ix
+from gfx_perp_sdk.constant_instructions.instructions import initialize_trader_acct_ix
 def get_market_signer(product: PublicKey, DEX_ID: PublicKey) -> PublicKey:
     addr = PublicKey.find_program_address([product._key], DEX_ID)
     return addr[0]
