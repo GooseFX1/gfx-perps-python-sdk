@@ -4,12 +4,11 @@ from dataclasses import dataclass
 from ..types import CancelOrderParams
 from io import BytesIO
 from podite import BYTES_CATALOG
-from solana.publickey import PublicKey
-from solana.transaction import (
-    AccountMeta,
-    TransactionInstruction,
-)
-from solmate.utils import to_account_meta
+from solders.pubkey import Pubkey as PublicKey
+from solana.transaction import AccountMeta
+from solders.instruction import Instruction as TransactionInstruction
+
+from ..utils import to_account_meta
 from typing import (
     List,
     Optional,
@@ -72,7 +71,7 @@ class CancelOrderIx:
         buffer.write(BYTES_CATALOG.pack(CancelOrderParams, self.params))
 
         return TransactionInstruction(
-            keys=keys,
+            accounts=keys,
             program_id=self.program_id,
             data=buffer.getvalue(),
         )
