@@ -21,31 +21,28 @@ rpc_client = Client(
     "https://omniscient-frequent-wish.solana-devnet.quiknode.pro/8b6a255ef55a6dbe95332ebe4f6d1545eae4d128/")
 keyp = Keypair.from_bytes(bytes([]))
 
+def on_ask_change(added_asks, size_changes):
+    print("Added Asks:", added_asks)
+    print("Size Changesin Asks:", size_changes)
 
-def initialize_perp_product():
-    perp = Perp(rpc_client, 'devnet', keyp)
-    try:
-        perp.init()
-    except:
-        print("Perp Already initialized")
-    product = Product(perp)
-    try:
-        product.init_by_name('SOL-PERP')
-    except:
-        print("Product Already initialized")
-    return perp, product
-
+def on_bid_change(added_bids, size_changes):
+    print("Added Bids:", added_bids)
+    print("Size Changes in Bids:", size_changes)
 
 async def main():
-    perp, product = initialize_perp_product()
+    perp = Perp(rpc_client, 'devnet', keyp)
+    perp.init()
+    product = Product(perp)
+    product.init_by_name('SOL-PERP')
     orderbook = product.get_orderbook_L2()
     print("\norderbook:", orderbook)
-    orderbookL3 = product.get_orderbook_L3()
-    task1 = asyncio.create_task(product.subscribe_to_bids())
-    task2 = asyncio.create_task(product.subscribe_to_asks())
+    await product.subscribe_to_bids(on_bid_change)
+    
+    # task1 = asyncio.create_task(product.subscribe_to_bids(on_bid_change))
+    # task2 = asyncio.create_task(product.subscribe_to_asks(on_ask_change))
 
-    await task1
-    await task2
+    # await task1
+    # await task2
 
 if __name__ == "__main__":
     print("\nStarting script...")

@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "gfx_perp_sdk"
+version = "0.1.0"
+description = "A Python SDK for interacting with the GFX Perps API"
+authors = ["_"]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+numpy = "==1.24.2"
+podite = {git = "https://github.com/nimily/podite.git", branch = "main"}
+pytest = "==7.4.0"
+pytest-asyncio = "==0.21.1"
+requests = "==2.31.0"
+solana = "==0.30.2"
+solders = "==0.18.1"

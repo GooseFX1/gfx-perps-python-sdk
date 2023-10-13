@@ -15,12 +15,11 @@ from podite import (
     U8,
     pod,
 )
-from solana.publickey import PublicKey
+from solders.pubkey import Pubkey as PublicKey
 
 # LOCK-END
 
 from typing import Iterable
-
 
 
 # LOCK-BEGIN[class(MarketProductGroup)]: DON'T MODIFY
@@ -107,4 +106,4 @@ class MarketProductGroup:
 #                yield p
 
 
-#SENTINAL_KEY = PublicKey("11111111111111111111111111111111")
+# SENTINAL_KEY = PublicKey.from_string("11111111111111111111111111111111")

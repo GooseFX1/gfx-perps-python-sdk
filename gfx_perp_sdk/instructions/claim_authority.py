@@ -3,12 +3,10 @@ from .instruction_tag import InstructionTag
 from dataclasses import dataclass
 from io import BytesIO
 from podite import BYTES_CATALOG
-from solana.publickey import PublicKey
-from solana.transaction import (
-    AccountMeta,
-    TransactionInstruction,
-)
-from solmate.utils import to_account_meta
+from solders.pubkey import Pubkey as PublicKey
+from solana.transaction import AccountMeta
+from solders.instruction import Instruction as TransactionInstruction
+from ..utils import to_account_meta
 from typing import (
     List,
     Optional,
@@ -39,7 +37,7 @@ class ClaimAuthorityIx:
         buffer.write(InstructionTag.to_bytes(InstructionTag.CLAIM_AUTHORITY))
 
         return TransactionInstruction(
-            keys=keys,
+            accounts=keys,
             program_id=self.program_id,
             data=buffer.getvalue(),
         )
@@ -55,7 +53,8 @@ def claim_authority(
     program_id: Optional[PublicKey] = None,
 ):
     if program_id is None:
-        program_id = PublicKey("Dex1111111111111111111111111111111111111111")
+        program_id = PublicKey.from_string(
+            "Dex1111111111111111111111111111111111111111")
 
     if isinstance(market_product_group, (str, PublicKey)):
         market_product_group = to_account_meta(

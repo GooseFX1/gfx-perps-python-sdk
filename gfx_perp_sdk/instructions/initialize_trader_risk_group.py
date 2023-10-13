@@ -3,12 +3,10 @@ from .instruction_tag import InstructionTag
 from dataclasses import dataclass
 from io import BytesIO
 from podite import BYTES_CATALOG
-from solana.publickey import PublicKey
-from solana.transaction import (
-    AccountMeta,
-    TransactionInstruction,
-)
-from solmate.utils import to_account_meta
+from solders.pubkey import Pubkey as PublicKey
+from solana.transaction import AccountMeta
+from solders.instruction import Instruction as TransactionInstruction
+from ..utils import to_account_meta
 from typing import (
     List,
     Optional,
@@ -50,10 +48,11 @@ class InitializeTraderRiskGroupIx:
             keys.extend(self.remaining_accounts)
 
         buffer = BytesIO()
-        buffer.write(InstructionTag.to_bytes(InstructionTag.INITIALIZE_TRADER_RISK_GROUP))
+        buffer.write(InstructionTag.to_bytes(
+            InstructionTag.INITIALIZE_TRADER_RISK_GROUP))
 
         return TransactionInstruction(
-            keys=keys,
+            accounts=keys,
             program_id=self.program_id,
             data=buffer.getvalue(),
         )
@@ -71,12 +70,14 @@ def initialize_trader_risk_group(
     trader_fee_state_acct: Union[str, PublicKey, AccountMeta],
     risk_engine_program: Union[str, PublicKey, AccountMeta],
     referral_key: Union[str, PublicKey, AccountMeta],
-    system_program: Union[str, PublicKey, AccountMeta] = PublicKey("11111111111111111111111111111111"),
+    system_program: Union[str, PublicKey, AccountMeta] = PublicKey.from_string(
+        "11111111111111111111111111111111"),
     remaining_accounts: Optional[List[AccountMeta]] = None,
     program_id: Optional[PublicKey] = None
 ):
     if program_id is None:
-        program_id = PublicKey("Dex1111111111111111111111111111111111111111")
+        program_id = PublicKey.from_string(
+            "Dex1111111111111111111111111111111111111111")
 
     if isinstance(owner, (str, PublicKey)):
         owner = to_account_meta(

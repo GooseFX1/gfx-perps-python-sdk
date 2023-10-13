@@ -1,3 +1,4 @@
+import asyncio
 import pytest
 from gfx_perp_sdk import (Perp, Product, Trader)
 from gfx_perp_sdk.types import Fractional
@@ -97,7 +98,7 @@ async def test_trader_deposit_funds():
     ix = t.deposit_funds_ix(Fractional.to_decimal(100))
     response = send_solana_transaction(keyp, ix[0], ix[1])
     print(response)
-    assert response['result'] != None
+    assert response != None
 
 @pytest.mark.skip(reason="This test will send transactions to the Solana network.")
 async def test_trader_withdraw_funds():
@@ -108,7 +109,7 @@ async def test_trader_withdraw_funds():
     ix = t.withdraw_funds_ix(Fractional.to_decimal(100))
     response = send_solana_transaction(keyp, ix[0], ix[1])
     print(response)
-    assert response['result'] != None
+    assert response != None
 
 @pytest.mark.asyncio
 async def test_trader_open_orders():
@@ -135,7 +136,7 @@ async def test_trader_new_order_single():
     ix = t.new_order_ix(product, Fractional.to_decimal(50000), Fractional.to_decimal(35), 'ask', 'limit')
     response = send_solana_transaction(keyp, ix[0], ix[1])
     print(response)
-    assert response['result'] != None
+    assert response != None
 
 @pytest.mark.skip(reason="This test will send transactions to the Solana network.")
 async def test_trader_new_order_multiple():
@@ -149,7 +150,7 @@ async def test_trader_new_order_multiple():
     ix2 = t.new_order_ix(product, Fractional.to_decimal(50000), Fractional.to_decimal(36), 'ask', 'limit')
     response = send_solana_transaction(keyp, ix1[0] + ix2[0], ix1[1])
     print(response)
-    assert response['result'] != None
+    assert response != None
 
 @pytest.mark.skip(reason="This test will send transactions to the Solana network.")
 async def test_trader_cancel_order_single():
@@ -192,7 +193,7 @@ async def test_subscribe_to_bids():
     ix1 = t.new_order_ix(product, Fractional.to_decimal(
         100000), Fractional.to_decimal(21.6), 'bid', 'limit')
     ix2 = t.new_order_ix(product, Fractional.to_decimal(
-        10000), Fractional.to_decimal(0.34), 'ask', 'limit')
+        100000), Fractional.to_decimal(35), 'ask', 'limit')
     response = send_solana_transaction(keyp, ix1[0] + ix2[0], ix1[1])
     print("response: \n", response)
     assert response != None

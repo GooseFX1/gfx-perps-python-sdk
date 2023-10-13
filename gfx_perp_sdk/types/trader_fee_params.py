@@ -2,7 +2,7 @@
 from dexterity.codegen.dex.types.fractional import Fractional
 from dexterity.utils.aob.state.base import Side
 from podite import pod
-from solana.publickey import PublicKey
+from solders.pubkey import Pubkey as PublicKey
 
 # LOCK-END
 
