@@ -66,6 +66,41 @@ class MarketProductGroup:
     def from_bytes(cls, raw, **kwargs):
         return cls.unpack(raw, converter="bytes", **kwargs)
 
+    @classmethod
+    def to_json(self):
+        return {
+            'tag': int(self.tag),
+            'name': bytes(self.name).rstrip(b'\x00').decode('utf-8'),
+            'authority': str(PublicKey(self.authority.bytes)),
+            'successor': str(PublicKey(self.successor.bytes)),
+            'vault_mint': str(PublicKey(self.vault_mint.bytes)),
+            'collected_fees': self.collected_fees.value,
+            'fee_collector': str(PublicKey(self.fee_collector.bytes)),
+            'decimals': int(self.decimals),
+            'risk_engine_program_id': str(PublicKey(self.risk_engine_program_id.bytes)),
+            'fee_model_program_id': str(PublicKey(self.fee_model_program_id.bytes)),
+            'fee_model_configuration_acct': str(PublicKey(self.fee_model_configuration_acct.bytes)),
+            'risk_model_configuration_acct': str(PublicKey(self.risk_model_configuration_acct.bytes)),
+            'active_flags_products': str(self.active_flags_products),
+            'ewma_windows': [int(x) for x in self.ewma_windows],
+            'market_products': [int(x) for x in self.market_products],
+            'vault_bump': int(self.vault_bump),
+            'risk_and_fee_bump': int(self.risk_and_fee_bump),
+            'find_fees_discriminant_len': int(self.find_fees_discriminant_len),
+            'validate_account_discriminant_len': int(self.validate_account_discriminant_len),
+            'find_fees_discriminant': [int(x) for x in self.find_fees_discriminant],
+            'validate_account_health_discriminant': [int(x) for x in self.validate_account_health_discriminant],
+            'validate_account_liquidation_discriminant': [int(x) for x in self.validate_account_liquidation_discriminant],
+            'create_risk_state_account_discriminant': [int(x) for x in self.create_risk_state_account_discriminant],
+            'max_maker_fee_bps': int(self.max_maker_fee_bps),
+            'min_maker_fee_bps': int(self.min_maker_fee_bps),
+            'max_taker_fee_bps': int(self.max_taker_fee_bps),
+            'min_taker_fee_bps': int(self.min_taker_fee_bps),
+            'fee_output_register': str(PublicKey(self.fee_output_register.bytes)),
+            'risk_output_register': str(PublicKey(self.risk_output_register.bytes)),
+            'sequence_number': str(self.sequence_number),
+        }
+
 #    def active_products(self) -> Iterable["types.Product"]:
 #        for p in self.market_products.array:
 #            if p.metadata().product_key != SENTINAL_KEY:

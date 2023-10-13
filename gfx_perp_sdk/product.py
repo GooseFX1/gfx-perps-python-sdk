@@ -3,8 +3,8 @@ from solana.rpc.websocket_api import (connect, SolanaWsClientProtocol)
 from .constants import perps_constants
 from .perp import Perp
 from .agnostic import Slab
+from .agnostic import EventQueue
 import gfx_perp_sdk.utils as utils
-import base64
 import requests
 import json
 
@@ -160,4 +160,103 @@ class Product(Perp):
         #          break
         #      print("i is: ", idx)
         #      print(msg)
-          #await websocket.account_unsubscribe(subscription_id)
+        # await solana_webscoket.account_unsubscribe(subscription_id)
+
+    async def subscribe_to_bids(self):
+        wss = self.connection._provider.endpoint_uri.replace("https", "wss")
+        async with connect(wss) as solana_webscoket:
+            solana_webscoket: SolanaWsClientProtocol
+            await solana_webscoket.account_subscribe(pubkey=self.BIDS, encoding="base64+zstd")
+            first_resp = await solana_webscoket.recv()
+
+            subscription_id = first_resp[0].result if first_resp and hasattr(
+                first_resp[0], 'result') else None
+            bidsData = self.connection.get_account_info(
+                pubkey=self.BIDS, commitment="processed", encoding="base64")
+            r1 = bidsData.value.data
+            bidDeserialized = Slab.deserialize(r1, 40)
+            prevBids = bidDeserialized.getL2DepthJS(40, True)
+            prevBidsProcessed = utils.processOrderbook(
+                prevBids, None, self.tick_size, self.decimals)["bids"]
+
+            while True:
+                try:
+                    msg = await solana_webscoket.recv()
+                    if msg:
+                        r1 = msg[0].result.value.data
+                        bidDeserialized = Slab.deserialize(r1, 40)
+                        newBids = bidDeserialized.getL2DepthJS(40, True)
+                        newBidsProcessed = utils.processOrderbook(
+                            newBids, None, self.tick_size, self.decimals)["bids"]
+                        if prevBidsProcessed != newBidsProcessed:
+                            added_bids, size_changes = utils.calculate_bid_ask_changes(
+                                prevBidsProcessed, newBidsProcessed)
+                            prevBidsProcessed = newBidsProcessed
+                            prevBids = newBids
+                except Exception:
+                    raise ModuleNotFoundError(
+                        "unable to process the bids")
+
+    async def subscribe_to_asks(self):
+        wss = self.connection._provider.endpoint_uri.replace("https", "wss")
+        async with connect(wss) as solana_webscoket:
+            solana_webscoket: SolanaWsClientProtocol
+            await solana_webscoket.account_subscribe(pubkey=self.ASKS, encoding="base64+zstd")
+            first_resp = await solana_webscoket.recv()
+
+            subscription_id = first_resp[0].result if first_resp and hasattr(
+                first_resp[0], 'result') else None
+            asksData = self.connection.get_account_info(
+                pubkey=self.ASKS, commitment="processed", encoding="base64")
+            r1 = asksData.value.data
+            bidDeserialized = Slab.deserialize(r1, 40)
+            prevAsks = bidDeserialized.getL2DepthJS(40, True)
+            prevAsksProcessed = utils.processOrderbook(
+                None, prevAsks, self.tick_size, self.decimals)["asks"]
+
+            while True:  # Replace with your own termination condition
+                try:
+                    msg = await solana_webscoket.recv()
+                    if msg:
+                        r1 = msg[0].result.value.data
+                        bidDeserialized = Slab.deserialize(r1, 40)
+                        newAsks = bidDeserialized.getL2DepthJS(40, True)
+                        newAsksProcessed = utils.processOrderbook(
+                            None, newAsks, self.tick_size, self.decimals)["asks"]
+                        if prevAsksProcessed != newAsksProcessed:
+                            added_asks, size_changes = utils.calculate_bid_ask_changes(
+                                prevAsksProcessed, newAsksProcessed)
+                            prevAsksProcessed = newAsksProcessed
+                            prevAsks = newAsks
+                except Exception:
+                    raise ModuleNotFoundError(
+                        "unable to process the asks")
+
+    async def subscribe_to_trades(self):
+        wss = self.connection._provider.endpoint_uri.replace("https", "wss")
+        async with connect(wss) as solana_webscoket:
+            solana_webscoket: SolanaWsClientProtocol
+            await solana_webscoket.account_subscribe(pubkey=self.EVENT_QUEUE, encoding="base64+zstd")
+            first_resp = await solana_webscoket.recv()
+
+            subscription_id = first_resp[0].result if first_resp and hasattr(
+                first_resp[0], 'result') else None
+            eventData = self.connection.get_account_info(
+                pubkey=self.EVENT_QUEUE, commitment="processed", encoding="base64")
+            r1 = eventData.value.data
+            eventQueueDeserialized = EventQueue.deserialize(r1, 40)
+            (prevFillEvents, prevOutEvents) = eventQueueDeserialized.get_fill_out_events()
+            while True:
+                try:
+                    msg = await solana_webscoket.recv()
+                    if msg:
+                        r1 = msg[0].result.value.data
+                        eventQueueDeserialized = EventQueue.deserialize(r1, 40)
+                        (newFillEvents, newOutEvents) = eventQueueDeserialized.get_fill_out_events()
+                        if prevFillEvents != newFillEvents:
+                            added_fills, removed_fills = utils.calculate_fill_changes(
+                                prevFillEvents, newFillEvents)
+                            prevFillEvents = newFillEvents
+                except Exception:
+                    raise ModuleNotFoundError(
+                        "unable to process the eventqueue")
