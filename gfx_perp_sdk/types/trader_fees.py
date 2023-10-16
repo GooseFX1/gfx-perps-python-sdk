@@ -1,10 +1,10 @@
 # LOCK-BEGIN[imports]: DON'T MODIFY
 from podite import (
     I32,
+    I64,
     pod,
 )
-from solmate.dtypes import UnixTimestamp
-
+UnixTimestamp = I64
 # LOCK-END
 
 

@@ -1,4 +1,7 @@
 pytest==7.4.0
-solana==0.19.1
-solmate @ git+ssh://git@github.com/NAK1998/solmate.git@jhow/use-u64-for-enums
-numpy==1.25.2
+solana==0.30.2
+podite @ git+ssh://git@github.com/nimily/podite.git@main
+numpy==1.24.2
+pytest_asyncio==0.21.1
+solders==0.18.1
+requests==2.31.0

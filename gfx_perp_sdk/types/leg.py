@@ -4,7 +4,7 @@ from podite import (
     U64,
     pod,
 )
-from solana.publickey import PublicKey
+from solders.pubkey import Pubkey as PublicKey
 
 # LOCK-END
 

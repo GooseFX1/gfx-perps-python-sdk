@@ -4,12 +4,10 @@ from dataclasses import dataclass
 from ..types import DepositFundsParams
 from io import BytesIO
 from podite import BYTES_CATALOG
-from solana.publickey import PublicKey
-from solana.transaction import (
-    AccountMeta,
-    TransactionInstruction,
-)
-from solmate.utils import to_account_meta
+from solders.pubkey import Pubkey as PublicKey
+from solana.transaction import AccountMeta
+from solders.instruction import Instruction as TransactionInstruction
+from ..utils import to_account_meta
 from typing import (
     List,
     Optional,
@@ -52,7 +50,7 @@ class DepositFundsIx:
         buffer.write(BYTES_CATALOG.pack(DepositFundsParams, self.params))
 
         return TransactionInstruction(
-            keys=keys,
+            accounts=keys,
             program_id=self.program_id,
             data=buffer.getvalue(),
         )
@@ -69,7 +67,8 @@ def deposit_funds(
     market_product_group_vault: Union[str, PublicKey, AccountMeta],
     params: DepositFundsParams,
     program_id: Union[str, PublicKey, AccountMeta],
-    token_program: Union[str, PublicKey, AccountMeta] = PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"),
+    token_program: Union[str, PublicKey, AccountMeta] = PublicKey.from_string(
+        "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"),
 ):
 
     if isinstance(token_program, (str, PublicKey)):

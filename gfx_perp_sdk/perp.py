@@ -1,12 +1,11 @@
-#from solana.publickey import PublicKey
 from solana.rpc.api import Client
 from typing import List, TypedDict
 from dataclasses import dataclass, field
 from .constants import perps_constants
 from .types import (MarketProductGroup, Solana_pubkey)
 from enum import Enum
-from solana.publickey import PublicKey
-from solana.keypair import Keypair
+from solders.pubkey import Pubkey as PublicKey
+from solders.keypair import Keypair
 import base64
 
 class NETWORK_TYPE(Enum):
@@ -76,12 +75,14 @@ class Perp:
 
     def init(self):
         mpgId = self.ADDRESSES["MPG_ID"]
-        response = self.connection.get_account_info(PublicKey(mpgId))
+        response = self.connection.get_account_info(
+            pubkey=mpgId, commitment="processed", encoding="base64")
         try:
-          r = response['result']['value']['data'][0]
-          decoded = base64.b64decode(r)[8:]
-          mpg = MarketProductGroup.from_bytes(decoded)
-          self.marketProductGroup = mpg
-          self.mpgBytes = decoded
+            if response.value:
+                r = response.value.data
+                decoded = r[8:]
+                mpg = MarketProductGroup.from_bytes(decoded)
+                self.marketProductGroup = mpg
+                self.mpgBytes = decoded
         except:
-          raise KeyError("Wrong Market Product Group PublicKey")
+            raise KeyError("Wrong Market Product Group PublicKey")

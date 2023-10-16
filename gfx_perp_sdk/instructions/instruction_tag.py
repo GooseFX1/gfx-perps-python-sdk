@@ -4,7 +4,7 @@ from podite import (
     U64,
     pod,
 )
-from solmate.anchor import InstructionDiscriminant
+from ..utils import InstructionDiscriminant
 
 # LOCK-END
 
@@ -30,5 +30,3 @@ class InstructionTag(Enum[U64]):
     CHOOSE_SUCCESSOR = InstructionDiscriminant()
     CLAIM_AUTHORITY = InstructionDiscriminant()
     # LOCK-END
-
-

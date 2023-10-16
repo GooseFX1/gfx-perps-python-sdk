@@ -4,12 +4,10 @@ from dataclasses import dataclass
 from dexterity.codegen.dex.types import InitializeMarketProductParams
 from io import BytesIO
 from podite import BYTES_CATALOG
-from solana.publickey import PublicKey
-from solana.transaction import (
-    AccountMeta,
-    TransactionInstruction,
-)
-from solmate.utils import to_account_meta
+from solders.pubkey import Pubkey as PublicKey
+from solana.transaction import AccountMeta
+from solders.instruction import Instruction as TransactionInstruction
+from ..utils import to_account_meta
 from typing import (
     List,
     Optional,
@@ -44,11 +42,13 @@ class InitializeMarketProductIx:
             keys.extend(self.remaining_accounts)
 
         buffer = BytesIO()
-        buffer.write(InstructionTag.to_bytes(InstructionTag.INITIALIZE_MARKET_PRODUCT))
-        buffer.write(BYTES_CATALOG.pack(InitializeMarketProductParams, self.params))
+        buffer.write(InstructionTag.to_bytes(
+            InstructionTag.INITIALIZE_MARKET_PRODUCT))
+        buffer.write(BYTES_CATALOG.pack(
+            InitializeMarketProductParams, self.params))
 
         return TransactionInstruction(
-            keys=keys,
+            accounts=keys,
             program_id=self.program_id,
             data=buffer.getvalue(),
         )
@@ -67,7 +67,8 @@ def initialize_market_product(
     program_id: Optional[PublicKey] = None,
 ):
     if program_id is None:
-        program_id = PublicKey("Dex1111111111111111111111111111111111111111")
+        program_id = PublicKey.from_string(
+            "Dex1111111111111111111111111111111111111111")
 
     if isinstance(authority, (str, PublicKey)):
         authority = to_account_meta(

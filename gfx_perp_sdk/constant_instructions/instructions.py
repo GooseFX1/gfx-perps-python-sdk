@@ -1,6 +1,7 @@
 from podite import U8, I32, pod, Enum
-from solana.publickey import PublicKey
-from solana.transaction import AccountMeta, TransactionInstruction
+from solders.pubkey import Pubkey as PublicKey
+from solders.instruction import Instruction as TransactionInstruction
+from solana.transaction import AccountMeta
 
 
 @pod
@@ -33,12 +34,14 @@ def update_fees_ix(
 ) -> TransactionInstruction:
     keys = [
         AccountMeta(pubkey=payer, is_signer=True, is_writable=False),
-        AccountMeta(pubkey=fee_model_config_acct, is_signer=False, is_writable=True),
-        AccountMeta(pubkey=market_product_group, is_signer=False, is_writable=False),
+        AccountMeta(pubkey=fee_model_config_acct,
+                    is_signer=False, is_writable=True),
+        AccountMeta(pubkey=market_product_group,
+                    is_signer=False, is_writable=False),
         AccountMeta(pubkey=system_program, is_signer=False, is_writable=False),
     ]
     return TransactionInstruction(
-        keys=keys,
+        accounts=keys,
         program_id=program_id,
         data=UpdateFeesParams.to_bytes(UpdateFeesParams(
             instr=InstructionCode.UpdateFees,
@@ -59,14 +62,17 @@ def initialize_trader_acct_ix(
 ) -> TransactionInstruction:
     keys = [
         AccountMeta(pubkey=payer, is_signer=True, is_writable=False),
-        #AccountMeta(pubkey=fee_model_config_acct, is_signer=False, is_writable=False),
+        # AccountMeta(pubkey=fee_model_config_acct, is_signer=False, is_writable=False),
         AccountMeta(pubkey=trader_fee_acct, is_signer=False, is_writable=True),
-        AccountMeta(pubkey=market_product_group, is_signer=False, is_writable=False),
-        AccountMeta(pubkey=trader_risk_group, is_signer=False, is_writable=False),
+        AccountMeta(pubkey=market_product_group,
+                    is_signer=False, is_writable=False),
+        AccountMeta(pubkey=trader_risk_group,
+                    is_signer=False, is_writable=False),
         AccountMeta(pubkey=system_program, is_signer=False, is_writable=False),
     ]
     return TransactionInstruction(
         program_id=program_id,
-        keys=keys,
-        data=NoParams.to_bytes(NoParams(instr=InstructionCode.InitializeTraderAcct)),
+        accounts=keys,
+        data=NoParams.to_bytes(
+            NoParams(instr=InstructionCode.InitializeTraderAcct)),
     )
