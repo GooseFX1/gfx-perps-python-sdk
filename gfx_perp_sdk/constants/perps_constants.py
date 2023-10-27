@@ -1,6 +1,8 @@
 from typing import List, TypedDict
 from solders.pubkey import Pubkey as PublicKey
 
+TOKEN_PROGRAM_ID = PublicKey.from_string("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA")
+
 Network = TypedDict("Network", {"MAINNET": dict, "DEVNET": dict})
 
 ADDRESSES: Network = {
@@ -59,6 +61,7 @@ ADDRESSES: Network = {
         "BUDDY_LINK_PROGRAM": PublicKey.from_string("9zE4EQ5tJbEeMYwtS2w8KrSHTtTW4UPqwfbBSEkUrNCA")
     }
 }
+MINT_DECIMALS = 6
 
 API_BASE = "https://api-services.goosefx.io"
 

@@ -1,3 +1,4 @@
+from enum import Enum
 from typing import List, Tuple, Generator, Union
 from dataclasses import dataclass
 import struct
@@ -28,6 +29,10 @@ class AccountTag:
     EventQueue = 2
     Bids = 3
     Asks = 4
+
+class OrderSide(Enum):
+    BID = "BID"
+    ASK = "ASK"
 
 @dataclass
 class InnerNode:

@@ -1,17 +1,15 @@
 from solders.pubkey import Pubkey as PublicKey
 from solders.keypair import Keypair
-from solana.transaction import Transaction
-from solders.system_program import (
-    ID as SYS_PROGRAM_ID, create_account, CreateAccountParams)
-from typing import Union
+from solders.rpc.responses import GetAccountInfoResp
+from solana.rpc.websocket_api import (connect, SolanaWsClientProtocol)
+from solders.system_program import (ID as SYS_PROGRAM_ID, create_account, CreateAccountParams)
+from gfx_perp_sdk.constants.perps_constants import MINT_DECIMALS, TOKEN_PROGRAM_ID
+import gfx_perp_sdk.utils as utils
+
 from .perp import Perp
 from .product import Product
 from .types import (TraderRiskGroup, Fractional,
                     Solana_pubkey, base, OrderType)
-import gfx_perp_sdk.utils as utils
-from dataclasses import dataclass, field
-import base64
-from solana.rpc import types
 from .instructions.initialize_trader_risk_group import initialize_trader_risk_group
 from .instructions.deposit_funds import (deposit_funds, DepositFundsParams)
 from .instructions.withdraw_funds import (withdraw_funds, WithdrawFundsParams)
@@ -92,8 +90,20 @@ class Trader(Perp):
 
     def get_open_orders(self, product: Product):
         l3ob = product.get_orderbook_L3()
-        return utils.filterOpenOrders(l3ob, self.trgKey)
+        open_orders = utils.filterOpenOrders(l3ob, str(self.trgKey))
+        return utils.get_user_info_from_trader_risk_group(self.connection, open_orders)
 
+    def fetch_trader_risk_group(self):
+        response = self.connection.get_account_info(
+            pubkey=self.trgKey, commitment="processed", encoding="base64")
+        if not response.value:
+            raise KeyError("No Trader Risk Group account found for this trgKey.")
+        r = response.value.data
+        decoded = r[8:]
+        trg = TraderRiskGroup.from_bytes(decoded)
+        self.trgBytes = decoded
+        return trg
+    
     def init(self):
         trgAddress = utils.getTraderRiskGroup(
             self.wallet.pubkey(), self.connection, self.ADDRESSES["DEX_ID"], self.ADDRESSES["MPG_ID"])
@@ -101,39 +111,24 @@ class Trader(Perp):
             raise KeyError(
                 "No Trader Risk Group account for this wallet. Please create a new one first.")
         self.trgKey = PublicKey.from_string(trgAddress)
-        response = self.connection.get_account_info(
-            pubkey=self.trgKey, commitment="processed", encoding="base64")
-        try:
-            if response.value:
-                r = response.value.data
-                decoded = r[8:]
-                trg = TraderRiskGroup.from_bytes(decoded)
-                self.traderRiskGroup = trg
-                self.trgBytes = decoded
+        self.traderRiskGroup = self.fetch_trader_risk_group()
+        self.userTokenAccount = utils.getUserAta(self.wallet.pubkey(), self.ADDRESSES['VAULT_MINT'])
+        self.marketProductGroupVault = utils.getMpgVault(self.ADDRESSES['VAULT_SEED'], self.ADDRESSES['MPG_ID'], self.ADDRESSES['DEX_ID'])
+        self.totalDeposited = self.traderRiskGroup.total_deposited.value / 100000
+        self.totalWithdrawn = self.traderRiskGroup.total_withdrawn.value / 100000
+        positions: [TraderPosition] = []
+        idx = 0
+        for trader_position in self.traderRiskGroup.trader_positions:
+            if trader_position.product_key != SYS_PROGRAM_ID:
+                positions.append(
+                    TraderPosition(trader_position.position.value / 100000,
+                                    self.traderRiskGroup.avg_position[idx].price.value / 100, idx)
+                )
+            idx = idx + 1
 
-            self.userTokenAccount = utils.getUserAta(
-                self.wallet.pubkey(), self.ADDRESSES['VAULT_MINT'])
-            self.marketProductGroupVault = utils.getMpgVault(
-                self.ADDRESSES['VAULT_SEED'], self.ADDRESSES['MPG_ID'], self.ADDRESSES['DEX_ID'])
-            self.totalDeposited = trg.total_deposited.value / 100000
-            self.totalWithdrawn = trg.total_withdrawn.value / 100000
-            positions: [TraderPosition] = []
-            idx = 0
-            for trader_position in trg.trader_positions:
-                if trader_position.product_key != SYS_PROGRAM_ID:
-                    positions.append(
-                        TraderPosition(trader_position.position.value / 100000,
-                                       trg.avg_position[idx].price.value / 100, idx)
-                    )
-                idx = idx + 1
-
-            self.traderPositions = positions
-            self.totalTradedVolume = trg.total_traded_volume.value
-
-        except:
-            raise KeyError(
-                "No Trader Risk Group account for this wallet. Please create a new one first.")
-
+        self.traderPositions = positions
+        self.totalTradedVolume = self.traderRiskGroup.total_traded_volume.value
+    
     def deposit_funds_ix(self, amount: Fractional):
         param = DepositFundsParams(amount)
         ix1 = deposit_funds(
@@ -268,3 +263,44 @@ class Trader(Perp):
 
     def refresh_data(self):
         self.init()
+        
+    async def subscribe_trader_positions(self, product: Product, on_fills_change, on_outs_change):
+        await product.subscribe_to_trades(on_fills_change, on_outs_change)
+        
+    async def get_position_update(self):
+        open_orders = self.get_open_orders(self.product)
+        position_status = utils.trader_position_status(open_orders)
+        return position_status
+    
+    async def subscribe_to_token_balance_change(self, callback_func):
+        wss = self.connection._provider.endpoint_uri.replace("http", "ws")
+        async with connect(wss) as solana_websocket:
+            solana_websocket: SolanaWsClientProtocol
+            await solana_websocket.account_subscribe(pubkey=self.userTokenAccount, commitment="processed", encoding="base64")
+            first_resp = await solana_websocket.recv()
+            subscription_id = first_resp[0].result if first_resp and hasattr(
+                first_resp[0], 'result') else None
+            tokenAccountData: GetAccountInfoResp = self.connection.get_account_info(
+                pubkey=self.userTokenAccount, commitment="processed", encoding="base64")
+            value = tokenAccountData.value
+            if value is None:
+                raise ValueError("Invalid account owner")
+            if value.owner != TOKEN_PROGRAM_ID:
+                raise AttributeError("Invalid account owner")
+
+            oldTokenAccountInfo = utils.create_token_account_info(tokenAccountData.value.data)
+            while True:
+                try:
+                    msg = await solana_websocket.recv()
+                    if msg:
+                        r1 = msg[0].result.value.data
+                        newTokenAccountInfo = utils.create_token_account_info(r1)
+                        if oldTokenAccountInfo.amount != newTokenAccountInfo.amount:
+                            callback_func(
+                                oldTokenAccountInfo.amount/10 ** MINT_DECIMALS, 
+                                newTokenAccountInfo.amount/10 ** MINT_DECIMALS
+                            )
+                            oldTokenAccountInfo = newTokenAccountInfo
+                except Exception:
+                    raise ModuleNotFoundError(
+                        "unable to process the Token Account")       
