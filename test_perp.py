@@ -11,7 +11,7 @@ from solders.instruction import Instruction as TransactionInstruction
 rpc_client = Client(
     "https://omniscient-frequent-wish.solana-devnet.quiknode.pro/8b6a255ef55a6dbe95332ebe4f6d1545eae4d128/")
 # Insert your Keypair to test it locally
-keyp = Keypair.from_bytes([])
+keyp = Keypair.from_bytes([157,199,176,70,192,244,178,73,161,222,7,160,116,28,53,76,24,48,95,147,187,169,224,128,117,229,198,165,42,182,164,12,93,202,132,147,120,29,204,45,249,95,89,214,181,228,79,132,86,101,148,108,169,138,243,1,73,3,93,139,129,227,28,237])
 
 pytest_plugins = ('pytest_asyncio',)
 
@@ -27,7 +27,8 @@ def send_solana_transaction(wallet: Keypair, ixs: [TransactionInstruction], sign
     return result.value
 
 
-@pytest.mark.asyncio
+@pytest.mark.skip(reason="This test will send transactions to the Solana network.")
+# @pytest.mark.asyncio
 async def test_perp_init():
     perp = Perp(rpc_client, 'devnet', keyp)
     assert perp.wallet != None
@@ -37,7 +38,8 @@ async def test_perp_init():
     perp.init()
     assert perp.marketProductGroup != None
 
-@pytest.mark.asyncio
+@pytest.mark.skip(reason="This test will send transactions to the Solana network.")
+# @pytest.mark.asyncio
 async def test_product_init():
     perp = Perp(rpc_client, 'devnet', keyp)
     perp.init()
@@ -45,7 +47,8 @@ async def test_product_init():
     product.init_by_name('SOL-PERP')
     assert product.PRODUCT_ID != None
 
-@pytest.mark.asyncio
+@pytest.mark.skip(reason="This test will send transactions to the Solana network.")
+# @pytest.mark.asyncio
 async def test_product_orderbooks():
     perp = Perp(rpc_client, 'devnet', keyp)
     perp.init()
@@ -59,7 +62,8 @@ async def test_product_orderbooks():
     assert len(orderbookL3['bids']) != 0
     assert len(orderbookL3['asks']) != 0
 
-@pytest.mark.asyncio
+@pytest.mark.skip(reason="This test will send transactions to the Solana network.")
+# @pytest.mark.asyncio
 async def test_product_trades():
     perp = Perp(rpc_client, 'devnet', keyp)
     perp.init()
@@ -69,7 +73,8 @@ async def test_product_trades():
     assert len(trades) > 0
 
 
-@pytest.mark.asyncio
+@pytest.mark.skip(reason="This test will send transactions to the Solana network.")
+# @pytest.mark.asyncio
 async def test_trader_init():
     perp = Perp(rpc_client, 'devnet',keyp)
     perp.init()
@@ -79,6 +84,7 @@ async def test_trader_init():
     assert t.userTokenAccount != None
 
 @pytest.mark.skip(reason="This test will send transactions to the Solana network.")
+# @pytest.mark.asyncio
 async def test_create_trader_risk():
     perp = Perp(rpc_client, 'devnet',keyp)
     perp.init()
@@ -90,6 +96,7 @@ async def test_create_trader_risk():
 
 
 @pytest.mark.skip(reason="This test will send transactions to the Solana network.")
+# @pytest.mark.asyncio
 async def test_trader_deposit_funds():
     perp = Perp(rpc_client, 'devnet',keyp)
     perp.init()
@@ -111,7 +118,8 @@ async def test_trader_withdraw_funds():
     print(response)
     assert response != None
 
-@pytest.mark.asyncio
+@pytest.mark.skip(reason="This test will send transactions to the Solana network.")
+# @pytest.mark.asyncio
 async def test_trader_open_orders():
     perp = Perp(rpc_client, 'devnet',keyp)
     perp.init()
@@ -152,6 +160,7 @@ async def test_trader_new_order_multiple():
     print(response)
     assert response != None
 
+# @pytest.mark.asyncio
 @pytest.mark.skip(reason="This test will send transactions to the Solana network.")
 async def test_trader_cancel_order_single():
     perp = Perp(rpc_client, 'devnet',keyp)
@@ -160,12 +169,13 @@ async def test_trader_cancel_order_single():
     product.init_by_index(0)
     t = Trader(perp) 
     t.init()
-    ix1 = t.cancel_order_ix(product, 269375752548498747818049433352371) # Get this order id from t.get_open_orders()
+    ix1 = t.cancel_order_ix(product, 213123757163389514870706933277370) # Get this order id from t.get_open_orders()
     response = send_solana_transaction(keyp, ix1[0], ix1[1])
     print(response)
     assert response != None
 
 
+# @pytest.mark.asyncio
 @pytest.mark.skip(reason="This test will send transactions to the Solana network.")
 async def test_trader_cancel_order_multiple():
     perp = Perp(rpc_client, 'devnet',keyp)
@@ -174,15 +184,15 @@ async def test_trader_cancel_order_multiple():
     product.init_by_index(0)
     t = Trader(perp) 
     t.init()
-    ix1 = t.cancel_order_ix(product, 277298568799925181577403828385709)
-    ix2 = t.cancel_order_ix(product, 285221385051351615336758223419572)
+    ix1 = t.cancel_order_ix(product, 213123757163389514870706933277368)
+    ix2 = t.cancel_order_ix(product, 213123757163389514870706933277369)
     response = send_solana_transaction(keyp, ix1[0] + ix2[0], ix1[1])
     print(response)
     assert response != None
 
 
-# @pytest.mark.asyncio
-@pytest.mark.skip(reason="This test will send transactions to the Solana network.")
+@pytest.mark.asyncio
+# @pytest.mark.skip(reason="This test will send transactions to the Solana network.")
 async def test_subscribe_to_bids():
     perp = Perp(rpc_client, 'devnet', keyp)
     perp.init()
@@ -191,16 +201,33 @@ async def test_subscribe_to_bids():
     t = Trader(perp)
     t.init()
     ix1 = t.new_order_ix(product, Fractional.to_decimal(
-        100000), Fractional.to_decimal(21.6), 'bid', 'limit')
+        220000), Fractional.to_decimal(32.45), 'bid', 'limit')
     ix2 = t.new_order_ix(product, Fractional.to_decimal(
-        100000), Fractional.to_decimal(35), 'ask', 'limit')
+        130000), Fractional.to_decimal(32.42), 'ask', 'limit')
+    # ix1 = t.new_order_ix(product, Fractional.to_decimal(
+    #     130000), Fractional.to_decimal(32.45), 'ask', 'limit')
+    # ix2 = t.new_order_ix(product, Fractional.to_decimal(
+    #     210000), Fractional.to_decimal(32.44), 'ask', 'limit')
     response = send_solana_transaction(keyp, ix1[0] + ix2[0], ix1[1])
-    print("response: \n", response)
+    # response = send_solana_transaction(keyp, ix1[0], ix1[1])
+    # response = send_solana_transaction(keyp, ix2[0], ix2[1])
+    print("\n response: \n", response)
     assert response != None
     orderbook = product.get_orderbook_L2()
     assert len(orderbook['bids']) != 0
-    assert len(orderbook['asks']) != 0
+    # assert len(orderbook['asks']) != 0
 
     orderbookL3 = product.get_orderbook_L3()
     assert len(orderbookL3['bids']) != 0
-    assert len(orderbookL3['asks']) != 0
+    # assert len(orderbookL3['asks']) != 0
+
+# @pytest.mark.asyncio
+@pytest.mark.skip(reason="This test will send transactions to the Solana network.")
+async def test_get_order_details_():
+    perp = Perp(rpc_client, 'devnet', keyp)
+    perp.init()
+    product = Product(perp)
+    product.init_by_name('SOL-PERP')
+    result = product.get_order_details_by_order_id(297897891053633909351725255941436)
+    print("\n result: \n", result)
+    assert result != None

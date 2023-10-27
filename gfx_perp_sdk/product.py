@@ -1,12 +1,16 @@
 from solders.pubkey import Pubkey as PublicKey
 from solana.rpc.websocket_api import (connect, SolanaWsClientProtocol)
+
+from gfx_perp_sdk.types.solana_pubkey import Solana_pubkey
+import gfx_perp_sdk.utils as utils
+
 from .constants import perps_constants
 from .perp import Perp
-from .agnostic import Slab
-from .agnostic import EventQueue
-import gfx_perp_sdk.utils as utils
+from .agnostic import Slab, EventQueue
+
 import requests
 import json
+
 
 class Product(Perp):
     name: str
@@ -109,31 +113,7 @@ class Product(Perp):
             pubkey=askKey, commitment="processed", encoding="base64")
         r2 = asksData.value.data
         askDeserialized = Slab.deserialize(r2, 40)
-        result = {"bids": [], "asks": []}
-        for bids in bidDeserialized.items():
-            price = bids[0].getPrice()
-            size = bids[0].baseQuantity
-            user = PublicKey(bids[1][0:32])
-            orderId = bids[0].key
-            result['bids'].append({
-                "price": price,
-                "size": size,
-                "user": user,
-                "orderId": orderId
-            })
-
-        for asks in askDeserialized.items():
-            price = asks[0].getPrice()
-            size = asks[0].baseQuantity
-            user = PublicKey(asks[1][0:32])
-            orderId = asks[0].key
-            result['asks'].append({
-                "price": price,
-                "size": size,
-                "user": user,
-                "orderId": orderId
-            })
-
+        result = utils.process_deserialized_slab_data(bidDeserialized, askDeserialized)
         result = utils.processL3Ob(
             result['bids'], result['asks'], self.tick_size, self.decimals)
         return result
@@ -147,28 +127,16 @@ class Product(Perp):
                             perps_constants.TRADE_HISTORY, json=req_param)
         return json.loads(res.text)
 
-    async def subscribe_to_orderbook(self, changeFn):
-        wss = self.connection._provider.endpoint_uri.replace("https", "wss")
-        # cl = await connect(wss)
-        # await cl.account_subscribe(self.EVENT_QUEUE)
-        # i = 0
-        # while True:
-        #    res = await cl.recv()
-        #    print(i)
-        #    print(res)
-        #    i = i + 1
-        # async with connect(wss) as solana_webscoket:
-        #  await solana_webscoket.account_subscribe(self.EVENT_QUEUE)
-        #  first_resp = await solana_webscoket.recv()
-        #  print("result 1: ", first_resp)
-        #  #subscription_id = first_resp[0].result
-        #  async for idx, msg in enumerate(solana_webscoket):
-        #      if idx == 3:
-        #          break
-        #      print("i is: ", idx)
-        #      print(msg)
-        # await solana_webscoket.account_unsubscribe(subscription_id)
-
+    def get_order_details_by_order_id(self, order_id):
+        l3ob = self.get_orderbook_L3()
+        for bid in l3ob['bids']:
+            if bid.orderId == order_id:
+                return utils.get_user_info_bid_ask(self.connection, bid)
+        for ask in l3ob['asks']:
+            if ask.orderId == order_id:
+                return utils.get_user_info_bid_ask(self.connection, ask)
+        return None
+            
     async def subscribe_to_bids(self, on_bids_change):
         wss = self.connection._provider.endpoint_uri.replace("https", "wss")
         async with connect(wss) as solana_webscoket:
@@ -182,25 +150,24 @@ class Product(Perp):
                 pubkey=self.BIDS, commitment="processed", encoding="base64")
             r1 = bidsData.value.data
             bidDeserialized = Slab.deserialize(r1, 40)
-            prevBids = bidDeserialized.getL2DepthJS(40, True)
-            prevBidsProcessed = utils.processOrderbook(
-                prevBids, None, self.tick_size, self.decimals)["bids"]
-
+            prevBids = utils.process_deserialized_slab_data(bidDeserialized, None)
+            prevBidsProcessed = utils.processL3Ob(
+                prevBids["bids"], None, self.tick_size, self.decimals)["bids"]
             while True:
                 try:
                     msg = await solana_webscoket.recv()
                     if msg:
                         r1 = msg[0].result.value.data
                         bidDeserialized = Slab.deserialize(r1, 40)
-                        newBids = bidDeserialized.getL2DepthJS(40, True)
-                        newBidsProcessed = utils.processOrderbook(
-                            newBids, None, self.tick_size, self.decimals)["bids"]
+                        newBids = utils.process_deserialized_slab_data(bidDeserialized, None)
+                        newBidsProcessed = utils.processL3Ob(
+                            newBids["bids"], None, self.tick_size, self.decimals)["bids"]
                         if prevBidsProcessed != newBidsProcessed:
-                            added_bids, size_changes = utils.calculate_bid_ask_changes(
+                            added_bids, size_changes_at_price, added_users, removed_bids = utils.calculate_bid_ask_changes(
                                 prevBidsProcessed, newBidsProcessed)
                             prevBidsProcessed = newBidsProcessed
                             prevBids = newBids
-                            on_bids_change(added_bids, size_changes)
+                            on_bids_change(added_bids, size_changes_at_price, added_users, removed_bids)
                 except Exception:
                     raise ModuleNotFoundError(
                         "unable to process the bids")
@@ -217,31 +184,31 @@ class Product(Perp):
             asksData = self.connection.get_account_info(
                 pubkey=self.ASKS, commitment="processed", encoding="base64")
             r1 = asksData.value.data
-            bidDeserialized = Slab.deserialize(r1, 40)
-            prevAsks = bidDeserialized.getL2DepthJS(40, True)
-            prevAsksProcessed = utils.processOrderbook(
-                None, prevAsks, self.tick_size, self.decimals)["asks"]
-
-            while True:  # Replace with your own termination condition
+            askDeserialized = Slab.deserialize(r1, 40)
+            prevAsks = utils.process_deserialized_slab_data(None, askDeserialized)
+            prevAsksProcessed = utils.processL3Ob(
+                None, prevAsks["asks"], self.tick_size, self.decimals)["asks"]
+            while True:
                 try:
                     msg = await solana_webscoket.recv()
                     if msg:
                         r1 = msg[0].result.value.data
-                        bidDeserialized = Slab.deserialize(r1, 40)
-                        newAsks = bidDeserialized.getL2DepthJS(40, True)
-                        newAsksProcessed = utils.processOrderbook(
-                            None, newAsks, self.tick_size, self.decimals)["asks"]
+                        askDeserialized = Slab.deserialize(r1, 40)
+                        newAsks = utils.process_deserialized_slab_data(None, askDeserialized)
+                        # newAsks = askDeserialized.getL2DepthJS(40, True)
+                        newAsksProcessed = utils.processL3Ob(
+                            None, newAsks["asks"], self.tick_size, self.decimals)["asks"]
                         if prevAsksProcessed != newAsksProcessed:
-                            added_asks, size_changes = utils.calculate_bid_ask_changes(
+                            added_asks, size_changes_at_price, added_users, removed_asks = utils.calculate_bid_ask_changes(
                                 prevAsksProcessed, newAsksProcessed)
                             prevAsksProcessed = newAsksProcessed
                             prevAsks = newAsks
-                            on_asks_change(added_asks, size_changes)
+                            on_asks_change(added_asks, size_changes_at_price, added_users, removed_asks)
                 except Exception:
                     raise ModuleNotFoundError(
                         "unable to process the asks")
 
-    async def subscribe_to_trades(self, on_trades_change):
+    async def subscribe_to_trades(self, on_fills_change, on_outs_change):
         wss = self.connection._provider.endpoint_uri.replace("https", "wss")
         async with connect(wss) as solana_webscoket:
             solana_webscoket: SolanaWsClientProtocol
@@ -253,20 +220,24 @@ class Product(Perp):
             eventData = self.connection.get_account_info(
                 pubkey=self.EVENT_QUEUE, commitment="processed", encoding="base64")
             r1 = eventData.value.data
-            eventQueueDeserialized = EventQueue.deserialize(r1, 40)
+            eventQueueDeserialized = EventQueue.deserialize(r1)
             (prevFillEvents, prevOutEvents) = eventQueueDeserialized.get_fill_out_events()
             while True:
                 try:
                     msg = await solana_webscoket.recv()
                     if msg:
                         r1 = msg[0].result.value.data
-                        eventQueueDeserialized = EventQueue.deserialize(r1, 40)
+                        eventQueueDeserialized = EventQueue.deserialize(r1)
                         (newFillEvents, newOutEvents) = eventQueueDeserialized.get_fill_out_events()
+                        
                         if prevFillEvents != newFillEvents:
-                            added_fills, removed_fills = utils.calculate_fill_changes(
-                                prevFillEvents, newFillEvents)
+                            added_fills, removed_fills, added_fills_total_baseSize, removed_fills_total_baseSize = utils.calculate_fill_changes(prevFillEvents, newFillEvents, self.decimals)
                             prevFillEvents = newFillEvents
-                            on_trades_change(added_fills, removed_fills)
+                            on_fills_change(added_fills, removed_fills, added_fills_total_baseSize, removed_fills_total_baseSize)
+                        if prevOutEvents != newOutEvents:
+                            added_outs, removed_outs = utils.calculate_out_changes(prevOutEvents, newOutEvents, self.decimals)
+                            prevOutEvents = newOutEvents
+                            on_outs_change(added_outs, removed_outs)
                 except Exception:
                     raise ModuleNotFoundError(
                         "unable to process the eventqueue")

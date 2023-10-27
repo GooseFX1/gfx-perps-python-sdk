@@ -182,7 +182,7 @@ The cancel order instruction needs the orderId in string format to cancel the or
   [ix, signers] = trader.cancel_order_ix(product, 269375752548498747818049433352371) # Get this order id from t.get_open_orders()
 ```
 
-Checkout https://github.com/GooseFX1/gfx-perps-python-sdk/blob/dev/test_perp.py for examples on the above functionalities! Happy trading!
+Checkout https://github.com/GooseFX1/gfx-perps-python-sdk/blob/dev/test_perp.py for examples on the above functionalities!
 
 ### Subscribe to asks
 
@@ -219,3 +219,7 @@ The subscribe to bids feature needs a callback function which can process added_
   await product.subscribe_to_bids(on_bid_change)
 
 ```
+
+Checkout https://github.com/GooseFX1/gfx-perps-python-sdk/test_subscribe_accounts.py for examples on the subscription functionalities!
+
+Happy trading!
