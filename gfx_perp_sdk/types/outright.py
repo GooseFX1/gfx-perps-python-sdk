@@ -32,3 +32,15 @@ class Outright:
     @classmethod
     def from_bytes(cls, raw, **kwargs):
         return cls.unpack(raw, converter="bytes", **kwargs)
+
+    def to_json(self):
+        return {
+            "metadata": self.metadata.to_json(),
+            "num_queue_events": str(self.num_queue_events),
+            "product_status": self.product_status.get_name(),
+            "dust": float(self.dust.value),
+            "cum_funding_per_share": float(self.cum_funding_per_share.value),
+            "cum_social_loss_per_share": float(self.cum_social_loss_per_share.value),
+            "open_long_interest": float(self.open_long_interest.value),
+            "open_short_interest": float(self.open_short_interest.value),
+        }

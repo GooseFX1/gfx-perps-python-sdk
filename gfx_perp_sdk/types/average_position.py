@@ -19,3 +19,9 @@ class AveragePosition:
     @classmethod
     def from_bytes(cls, raw, **kwargs):
         return cls.unpack(raw, converter="bytes", **kwargs)
+
+    def to_json(self):
+        return {
+            "qty": float(self.qty.value),
+            "price": float(self.price.value),
+        }

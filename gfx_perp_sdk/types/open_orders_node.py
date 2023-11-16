@@ -24,3 +24,11 @@ class OpenOrdersNode:
     @classmethod
     def from_bytes(cls, raw, **kwargs):
         return cls.unpack(raw, converter="bytes", **kwargs)
+
+    def to_json(self):
+        return {
+            "id": str(self.id),
+            "client_id": str(self.client_id),
+            "prev": str(self.prev),
+            "next": str(self.next)
+        }

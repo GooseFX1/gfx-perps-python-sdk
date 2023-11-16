@@ -11,7 +11,7 @@ from solders.instruction import Instruction as TransactionInstruction
 rpc_client = Client(
     "https://omniscient-frequent-wish.solana-devnet.quiknode.pro/8b6a255ef55a6dbe95332ebe4f6d1545eae4d128/")
 # Insert your Keypair to test it locally
-keyp = Keypair.from_bytes([157,199,176,70,192,244,178,73,161,222,7,160,116,28,53,76,24,48,95,147,187,169,224,128,117,229,198,165,42,182,164,12,93,202,132,147,120,29,204,45,249,95,89,214,181,228,79,132,86,101,148,108,169,138,243,1,73,3,93,139,129,227,28,237])
+keyp = Keypair.from_bytes([])
 
 pytest_plugins = ('pytest_asyncio',)
 
@@ -91,7 +91,7 @@ async def test_create_trader_risk():
     t = Trader(perp)
     ix = t.create_trader_account_ixs()
     response = send_solana_transaction(keyp, ix[0], ix[1])
-    print(response)
+    print("\n response:", response)
     assert response != None
 
 
@@ -104,7 +104,7 @@ async def test_trader_deposit_funds():
     t.init()
     ix = t.deposit_funds_ix(Fractional.to_decimal(100))
     response = send_solana_transaction(keyp, ix[0], ix[1])
-    print(response)
+    print("\n response:", response)
     assert response != None
 
 @pytest.mark.skip(reason="This test will send transactions to the Solana network.")
@@ -193,7 +193,7 @@ async def test_trader_cancel_order_multiple():
 
 @pytest.mark.asyncio
 # @pytest.mark.skip(reason="This test will send transactions to the Solana network.")
-async def test_subscribe_to_bids():
+async def test_multi_new_orders():
     perp = Perp(rpc_client, 'devnet', keyp)
     perp.init()
     product = Product(perp)
@@ -201,14 +201,17 @@ async def test_subscribe_to_bids():
     t = Trader(perp)
     t.init()
     ix1 = t.new_order_ix(product, Fractional.to_decimal(
-        220000), Fractional.to_decimal(32.45), 'bid', 'limit')
+        13000), Fractional.to_decimal(56.1), 'bid', 'limit')
+    ix3 = t.new_order_ix(product, Fractional.to_decimal(
+        11000), Fractional.to_decimal(32.41), 'ask', 'limit')
     ix2 = t.new_order_ix(product, Fractional.to_decimal(
-        130000), Fractional.to_decimal(32.42), 'ask', 'limit')
+        12000), Fractional.to_decimal(32.46), 'ask', 'limit')
     # ix1 = t.new_order_ix(product, Fractional.to_decimal(
-    #     130000), Fractional.to_decimal(32.45), 'ask', 'limit')
+    #     10000), Fractional.to_decimal(32.4), 'ask', 'limit')
     # ix2 = t.new_order_ix(product, Fractional.to_decimal(
     #     210000), Fractional.to_decimal(32.44), 'ask', 'limit')
-    response = send_solana_transaction(keyp, ix1[0] + ix2[0], ix1[1])
+    response = send_solana_transaction(keyp, ix1[0] + ix2[0] + ix3[0], ix1[1])
+    # response = send_solana_transaction(keyp,ix3[0], ix3[1])
     # response = send_solana_transaction(keyp, ix1[0], ix1[1])
     # response = send_solana_transaction(keyp, ix2[0], ix2[1])
     print("\n response: \n", response)
