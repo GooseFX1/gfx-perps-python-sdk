@@ -22,3 +22,10 @@ class TradeHistory:
     @classmethod
     def from_bytes(cls, raw, **kwargs):
         return cls.unpack(raw, converter="bytes", **kwargs)
+    
+    def to_json(self):
+        return {
+            "qty": [float(qty.value) for qty in self.qty],
+            "price": [float(price.value) for price in self.price],
+            "latest_idx": str(self.latest_idx),
+        }

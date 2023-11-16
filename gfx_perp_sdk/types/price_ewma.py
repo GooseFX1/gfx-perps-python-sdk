@@ -28,3 +28,14 @@ class PriceEwma:
     @classmethod
     def from_bytes(cls, raw, **kwargs):
         return cls.unpack(raw, converter="bytes", **kwargs)
+
+    def to_json(self):
+        return {
+            "ewma_bid": [float(ewma_bid.value) for ewma_bid in self.ewma_bid],
+            "ewma_ask": [float(ewma_ask.value) for ewma_ask in self.ewma_ask],
+            "bid": float(self.bid.value),
+            "ask": float(self.ask.value),
+            "slot": str(self.slot),
+            "prev_bid": float(self.prev_bid.value),
+            "prev_ask": float(self.prev_ask.value),
+        }

@@ -13,87 +13,186 @@ import os
 from datetime import datetime
 
 from gfx_perp_sdk.trader import Trader
-
-def write_json(data, filename):
-    with open(filename, 'w') as f:
-        json.dump(data, f, indent=4)
-
-
-def read_json(filename):
-    with open(filename, 'r') as f:
-        return json.load(f)
-
+from gfx_perp_sdk.types.market_product_group import MarketProductGroup
+from gfx_perp_sdk.types.trader_risk_group import TraderRiskGroup
 
 rpc_client = Client(
     "https://omniscient-frequent-wish.solana-devnet.quiknode.pro/8b6a255ef55a6dbe95332ebe4f6d1545eae4d128/")
-keyp = Keypair.from_bytes(bytes([]))
+keyp = Keypair.from_bytes([])
 
-def on_ask_change(added_asks, size_changes_at_price, added_users, removed_asks):
-    timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
-    folder_path = f'tests/events/{timestamp}'
-    if not os.path.exists(folder_path):
-        os.makedirs(folder_path)
-    folder_path = os.path.join(folder_path, 'on_ask_change')
-    if not os.path.exists(folder_path):
-        os.makedirs(folder_path)
-    serializable_added_asks = [asdict(item) for item in added_asks]
-    utils.write_json(serializable_added_asks,  f'{folder_path}/added_asks.json')
-    serializable_size_changes_at_price = [asdict(item) for item in size_changes_at_price]
-    utils.write_json(serializable_size_changes_at_price,  f'{folder_path}/ask_size_changes_at_price.json')
-    serializable_added_users = [asdict(item) for item in added_users]
-    utils.write_json(serializable_added_users,  f'{folder_path}/added_users.json')
-    serializable_removed_asks = [asdict(item) for item in removed_asks]
-    utils.write_json(serializable_removed_asks,  f'{folder_path}/removed_asks.json')
+def on_asks_change(ask_value_changes, ask_added, ask_removed):
+    if len(ask_value_changes) > 0 or len(ask_added) > 0 or len(ask_removed) > 0:
+        timestamp = datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
+        folder_path = f'tests/events/{timestamp}'
+        if not os.path.exists(folder_path):
+            os.makedirs(folder_path)
+        folder_path = os.path.join(folder_path, 'on_asks_change')
+        if not os.path.exists(folder_path):
+            os.makedirs(folder_path)
+        if len(ask_value_changes) > 0:
+            utils.write_json(ask_value_changes, f'{folder_path}/ask_value_changes.json')
+        if len(ask_added) > 0:
+            utils.write_json(ask_added, f'{folder_path}/ask_added.json')
+        if len(ask_removed) > 0:
+            utils.write_json(ask_removed, f'{folder_path}/ask_removed.json')
 
-def on_bid_change(added_bids, size_changes_at_price, added_users, removed_bids):
-    timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
-    folder_path = f'tests/events/{timestamp}'
-    if not os.path.exists(folder_path):
-        os.makedirs(folder_path)
-    folder_path = os.path.join(folder_path, 'on_bid_change')
-    if not os.path.exists(folder_path):
-        os.makedirs(folder_path)
-    serializable_added_bids = [asdict(item) for item in added_bids]
-    utils.write_json(serializable_added_bids,  f'{folder_path}/added_bids.json')
-    serializable_size_changes_at_price = [asdict(item) for item in size_changes_at_price]
-    utils.write_json(serializable_size_changes_at_price,  f'{folder_path}/bid_size_changes_at_price.json')
-    serializable_added_users = [asdict(item) for item in added_users]
-    utils.write_json(serializable_added_users,  f'{folder_path}/added_users.json')
-    serializable_removed_bids = [asdict(item) for item in removed_bids]
-    utils.write_json(serializable_removed_bids,  f'{folder_path}/removed_bids.json')
+def on_bids_change(bid_value_changes, bid_added, bid_removed):
+    if len(bid_value_changes) > 0 or len(bid_added) > 0 or len(bid_removed) > 0:
+        timestamp = datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
+        folder_path = f'tests/events/{timestamp}'
+        if not os.path.exists(folder_path):
+            os.makedirs(folder_path)
+        folder_path = os.path.join(folder_path, 'on_bids_change')
+        if not os.path.exists(folder_path):
+            os.makedirs(folder_path)
+        if len(bid_value_changes) > 0:
+            utils.write_json(bid_value_changes, f'{folder_path}/bid_value_changes.json')
+        if len(bid_added) > 0:
+            utils.write_json(bid_added, f'{folder_path}/bid_added.json')
+        if len(bid_removed) > 0:
+            utils.write_json(bid_removed, f'{folder_path}/bid_removed.json')
 
-def on_fills_change(added_fills: List[Dict], removed_fills: List[Dict], added_fills_total_baseSize, removed_fills_total_baseSize):
-    timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
-    folder_path = f'tests/events/{timestamp}'
-    if not os.path.exists(folder_path):
-        os.makedirs(folder_path)
-    folder_path = os.path.join(folder_path, 'on_fills_change')
-    if not os.path.exists(folder_path):
-        os.makedirs(folder_path)
-    print("added_fills_total_baseSize:", added_fills_total_baseSize)
-    print("removed_fills_total_baseSize:", removed_fills_total_baseSize)
-    write_json(added_fills, f'{folder_path}/added_fills.json')
-    write_json(added_fills, f'{folder_path}/removed_fills.json') 
+def on_fills_change(fill_value_changes, fill_added, fill_removed):
+    if len(fill_value_changes) > 0 or len(fill_added) > 0 or len(fill_removed) > 0:
+        timestamp = datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
+        folder_path = f'tests/events/{timestamp}'
+        if not os.path.exists(folder_path):
+            os.makedirs(folder_path)
+        folder_path = os.path.join(folder_path, 'on_fills_change')
+        if not os.path.exists(folder_path):
+            os.makedirs(folder_path)
+        if len(fill_value_changes) > 0:
+            utils.write_json(fill_value_changes, f'{folder_path}/fill_value_changes.json')
+        if len(fill_added) > 0:
+            utils.write_json(fill_added, f'{folder_path}/fill_added.json')
+        if len(fill_removed) > 0:
+            utils.write_json(fill_removed, f'{folder_path}/fill_removed.json')
+
+def on_outs_change(out_value_changes, out_added, out_removed):
+    if len(out_value_changes) > 0 or len(out_added) > 0 or len(out_removed) > 0:
+        timestamp = datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
+        folder_path = f'tests/events/{timestamp}'
+        if not os.path.exists(folder_path):
+            os.makedirs(folder_path)
+        folder_path = os.path.join(folder_path, 'on_outs_change')
+        if not os.path.exists(folder_path):
+            os.makedirs(folder_path)
+        if len(out_value_changes) > 0:
+            utils.write_json(out_value_changes, f'{folder_path}/out_value_changes.json')
+        if len(out_added) > 0:
+            utils.write_json(out_added, f'{folder_path}/out_added.json')
+        if len(out_removed) > 0:
+            utils.write_json(out_removed, f'{folder_path}/out_removed.json')
     
-def on_outs_change(added_outs: List[Dict], removed_outs: List[Dict] ):
-    timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
-    folder_path = f'tests/events/{timestamp}'
-    if not os.path.exists(folder_path):
-        os.makedirs(folder_path)
-    folder_path = os.path.join(folder_path, 'on_outs_change')
-    if not os.path.exists(folder_path):
-        os.makedirs(folder_path)
-    write_json(added_outs, f'{folder_path}/added_outs.json')
-    write_json(removed_outs, f'{folder_path}/removed_outs.json')
-  
 def on_trader_balance_change(old_token_balance: int, new_token_balance: int):
     print("Old Token Balance:", old_token_balance)
     print("New Token Balance:", new_token_balance)
-    
-executor = ThreadPoolExecutor()
+
+def on_active_products_change(active_products_changes):
+    if active_products_changes != {}:
+        timestamp = datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
+        folder_path = f'tests/events/{timestamp}'
+        if not os.path.exists(folder_path):
+            os.makedirs(folder_path)
+        folder_path = os.path.join(folder_path, 'on_active_products_change')
+        if not os.path.exists(folder_path):
+            os.makedirs(folder_path)    
+        utils.write_json(active_products_changes, f'{folder_path}/active_products_changes.json')
+    else:
+        print("active_products_changes is None")
+
+def on_total_deposited_change(total_deposited_changes):
+    if total_deposited_changes != {}:
+        timestamp = datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
+        folder_path = f'tests/events/{timestamp}'
+        if not os.path.exists(folder_path):
+            os.makedirs(folder_path)
+        folder_path = os.path.join(folder_path, 'on_total_deposited_change')
+        if not os.path.exists(folder_path):
+            os.makedirs(folder_path)
+        utils.write_json(total_deposited_changes, f'{folder_path}/total_deposited_changes.json')
+    else:
+        print("total_deposited_changes is None")
+
+def on_total_withdrawn_change(total_withdrawn_changes):
+    if total_withdrawn_changes != {}:
+        timestamp = datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
+        folder_path = f'tests/events/{timestamp}'
+        if not os.path.exists(folder_path):
+            os.makedirs(folder_path)
+        folder_path = os.path.join(folder_path, 'on_total_withdrawn_change')
+        if not os.path.exists(folder_path):
+            os.makedirs(folder_path)
+        utils.write_json(total_withdrawn_changes, f'{folder_path}/total_withdrawn_changes.json')
+    else:
+        print("total_withdrawn_changes is None")
+
+def on_cash_balance_change(cash_balance_changes):
+    if cash_balance_changes != {}:
+        timestamp = datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
+        folder_path = f'tests/events/{timestamp}'
+        if not os.path.exists(folder_path):
+            os.makedirs(folder_path)
+        folder_path = os.path.join(folder_path, 'on_cash_balance_change')
+        if not os.path.exists(folder_path):
+            os.makedirs(folder_path)
+        perp = Perp(rpc_client, 'devnet', keyp)
+        perp.init()
+        product = Product(perp)
+        product.init_by_name('SOL-PERP')
+        if 'cash_balance' in cash_balance_changes and 'old' in cash_balance_changes['cash_balance'] and 'new' in cash_balance_changes['cash_balance']:
+            cash_balance_changes['cash_balance']['old'] /= 10**5
+            cash_balance_changes['cash_balance']['new'] /= 10**5
+            utils.write_json(cash_balance_changes, f'{folder_path}/cash_balance_changes.json')
+    else:
+        print("cash_balance_changes is None")
+
+def on_trader_positions_change(trader_position_changes):
+    if trader_position_changes != {}:
+        timestamp = datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
+        folder_path = f'tests/events/{timestamp}'
+        if not os.path.exists(folder_path):
+            os.makedirs(folder_path)
+        folder_path = os.path.join(folder_path, 'on_trader_positions_change')
+        if not os.path.exists(folder_path):
+            os.makedirs(folder_path)
+        utils.write_json(trader_position_changes, f'{folder_path}/trader_position_changes.json')
+    else:
+        print("trader_position_changes is None")
+
+def on_open_orders_change(open_orders_changes):
+    if open_orders_changes != {}:
+        timestamp = datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
+        folder_path = f'tests/events/{timestamp}'
+        if not os.path.exists(folder_path):
+            os.makedirs(folder_path)
+        folder_path = os.path.join(folder_path, 'on_open_orders_change')
+        if not os.path.exists(folder_path):
+            os.makedirs(folder_path)
+        utils.write_json(open_orders_changes, f'{folder_path}/open_orders_changes.json')
+        perp = Perp(rpc_client, 'devnet', keyp)
+        perp.init()
+        product = Product(perp)
+        product.init_by_name('SOL-PERP')
+        if len(open_orders_changes["open_orders"]["added_orders"]) > 0:
+            added_orders_info = []
+            for order_id in open_orders_changes["open_orders"]["added_orders"]:
+                order_info = product.get_order_details_by_order_id(int(order_id))
+                order_info['order_id'] = order_id
+                added_orders_info.append(order_info)
+            utils.write_json(added_orders_info, f'{folder_path}/added_open_orders_info.json')
+        if len(open_orders_changes["open_orders"]["removed_orders"]) > 0:
+            removed_orders_info = []
+            for order_id in open_orders_changes["open_orders"]["removed_orders"]:
+                order_info = product.get_order_details_by_order_id(int(order_id))
+                order_info['order_id'] = order_id
+                removed_orders_info.append(order_info)
+            utils.write_json(removed_orders_info, f'{folder_path}/removed_open_orders_info.json')
+    else:
+        print("open_orders_changes is None")
 
 async def main():
-    timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
+    timestamp = datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
     folder_path = f'tests/events/{timestamp}'
     if not os.path.exists(folder_path):
         os.makedirs(folder_path)
@@ -112,19 +211,34 @@ async def main():
     print("wallet address:", keyp.pubkey())
     
     open_orders = t.get_open_orders(product)
-    serialize_open_orders = utils.serialize_open_orders_to_dict(open_orders)
-    utils.write_json(serialize_open_orders, f'{folder_path}/open_orders_of_trader.json')
-    
-    task1 = asyncio.create_task(product.subscribe_to_bids(on_bid_change))
-    task2 = asyncio.create_task(product.subscribe_to_asks(on_ask_change))
-    task3 = asyncio.create_task(t.subscribe_trader_positions(product, on_fills_change, on_outs_change))
-    task4 = asyncio.create_task(t.subscribe_to_token_balance_change(on_trader_balance_change))
-    orderDetails = product.get_order_details_by_order_id(l3ob['asks'][0].orderId)
-    print("orderDetails:", orderDetails)
-    await task1
-    await task2
-    await task3
-    await task4
+    utils.write_json(open_orders, f'{folder_path}/open_orders_of_trader.json')
+    prevTrg = t.fetch_trader_risk_group()
+    utils.write_json(prevTrg.to_json(), f'{folder_path}/prev_trg.json')
+    # utils.write_json(perp.marketProductGroup.to_json(), f'{folder_path}/prev_mpg.json')
+    bids_sub = asyncio.create_task(product.subscribe_to_bids(on_bids_change))
+    asks_sub = asyncio.create_task(product.subscribe_to_asks(on_asks_change))
+    fills_sub = asyncio.create_task(t.subscribe_trader_positions(product, on_fills_change, "fills"))
+    outs_sub = asyncio.create_task(t.subscribe_trader_positions(product, on_outs_change, "outs"))
+    act_sub = asyncio.create_task(t.subscribe_to_trader_risk_group(on_active_products_change, "active_products"))
+    deposit_sub = asyncio.create_task(t.subscribe_to_trader_risk_group(on_total_deposited_change, "total_deposited"))
+    withdraw_sub = asyncio.create_task(t.subscribe_to_trader_risk_group(on_total_withdrawn_change, "total_withdrawn"))
+    cash_bal_sub = asyncio.create_task(t.subscribe_to_trader_risk_group(on_cash_balance_change, "cash_balance"))
+    positions_sub = asyncio.create_task(t.subscribe_to_trader_risk_group(on_trader_positions_change, "trader_positions"))
+    open_orders_sub = asyncio.create_task(t.subscribe_to_trader_risk_group(on_open_orders_change, "open_orders"))
+    # token_bal_sub = asyncio.create_task(t.subscribe_to_token_balance_change(on_trader_balance_change))
+    # orderDetails = product.get_order_details_by_order_id(l3ob['asks'][0].orderId)
+    # print("orderDetails:", orderDetails)
+    print("starting tasks...")
+    await bids_sub
+    await asks_sub
+    await fills_sub
+    await outs_sub
+    await act_sub
+    await deposit_sub
+    await withdraw_sub
+    await cash_bal_sub
+    await positions_sub
+    await open_orders_sub
 
 if __name__ == "__main__":
     print("\nStarting script...")

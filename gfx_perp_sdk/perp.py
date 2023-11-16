@@ -6,7 +6,7 @@ from .types import (MarketProductGroup, Solana_pubkey)
 from enum import Enum
 from solders.pubkey import Pubkey as PublicKey
 from solders.keypair import Keypair
-import base64
+# from solana.rpc.websocket_api import (connect, SolanaWsClientProtocol)
 
 class NETWORK_TYPE(Enum):
     devnet = "devnet"
@@ -86,3 +86,24 @@ class Perp:
                 self.mpgBytes = decoded
         except:
             raise KeyError("Wrong Market Product Group PublicKey")
+        
+    # async def subscribe_to_market_product_group(self, callback):
+    #     mpgId = self.ADDRESSES["MPG_ID"]
+    #     wss = self.connection._provider.endpoint_uri.replace("http", "ws")
+    #     async with connect(wss) as solana_websocket:
+    #         solana_websocket: SolanaWsClientProtocol
+    #         await solana_websocket.account_subscribe(pubkey=mpgId, commitment="processed", encoding="base64")
+    #         first_resp = await solana_websocket.recv()
+    #         subscription_id = first_resp[0].result if first_resp and hasattr(
+    #             first_resp[0], 'result') else None
+    #         while True:
+    #             try:
+    #                 msg = await solana_websocket.recv()
+    #                 if msg:
+    #                     r1 = msg[0].result.value.data
+    #                     decoded = r1[8:]
+    #                     mpg: MarketProductGroup = MarketProductGroup.from_bytes(decoded)
+    #                     callback(mpg)
+    #             except Exception as e:
+    #                 print("Error: ", e)
+    #                 raise ModuleNotFoundError("Unable to process market product group")

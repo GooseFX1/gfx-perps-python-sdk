@@ -16,9 +16,11 @@ from typing import List, Dict, Tuple, TypeVar, Union, NamedTuple, Optional
 from copy import deepcopy
 from gfx_perp_sdk.constants.perps_constants import MINT_DECIMALS, TOKEN_PROGRAM_ID
 from gfx_perp_sdk.types.fractional import Fractional
+from gfx_perp_sdk.types.market_product_group import MarketProductGroup
 from gfx_perp_sdk.types.solana_pubkey import Solana_pubkey
-
 from gfx_perp_sdk.types.trader_risk_group import TraderRiskGroup
+
+from deepdiff import DeepDiff 
 
 @dataclass
 class L3OrderbookInfo:
@@ -31,6 +33,16 @@ class L3OrderbookInfo:
 
     def to_dict(self):
         return asdict(self)
+    
+    def to_json(self):
+        return {
+            'size': self.size,
+            'price': self.price,
+            'user': self.user,
+            'orderId': self.orderId,
+            'orderSide': self.orderSide
+        }
+
 @dataclass
 class SlabOrderInfo:
     """Class representing Slab info received from Asks and Bids accounts."""
@@ -39,6 +51,15 @@ class SlabOrderInfo:
     user: PublicKey
     orderId: int
     OrderSide: str
+
+    def to_json(self):
+        return {
+            'price': self.price,
+            'size': self.size,
+            'user': self.user.__str__(),
+            'orderId': self.orderId,
+            'orderSide': self.OrderSide
+        }
 
 def get_market_signer(product: PublicKey, DEX_ID: PublicKey) -> PublicKey:
     addr = PublicKey.find_program_address([product.__bytes__()], DEX_ID)
@@ -277,15 +298,144 @@ def get_user_info_bid_ask(connection: Client, bid_ask: L3OrderbookInfo):
         'userWallet': userWallet
     }
         
-def get_user_info_from_trader_risk_group(connection: Client, order_list: Dict[str, List[L3OrderbookInfo]]):
+def get_user_info_from_trader_risk_group(connection: Client, order_list: Dict[str, List[L3OrderbookInfo]], trgKey: PublicKey):
     orders_list_with_user = {'bids': [], 'asks': []}
+    userWalletPubkey = get_trader_from_trader_risk_group(connection, trgKey) 
     for bid in order_list["bids"]:
-        bid_with_user_info = get_user_info_bid_ask(connection, bid)
-        orders_list_with_user['bids'].append(bid_with_user_info)
+        orders_list_with_user['bids'].append({
+            'size': bid.size, 
+            'price': bid.price, 
+            'orderSide': bid.orderSide, 
+            'user': bid.user, 
+            'userWallet': userWalletPubkey
+        })
     for ask in order_list["asks"]:
-        ask_with_user_info = get_user_info_bid_ask(connection, ask)
-        orders_list_with_user['asks'].append(ask_with_user_info)
+        orders_list_with_user['asks'].append({
+            'size': ask.size, 
+            'price': ask.price, 
+            'orderSide': ask.orderSide, 
+            'user': ask.user, 
+            'userWallet': userWalletPubkey
+        })
     return orders_list_with_user
+
+def compare_trader_risk_groups(prevTrg: TraderRiskGroup, newtrg: TraderRiskGroup, change_param: str):
+    differences = {}
+    prev_trg_json = prevTrg.to_json()
+    new_trg_json = newtrg.to_json()
+    
+    if change_param == 'active_products':
+        try:
+            old_active_products = set(tuple(sorted(d.items())) for d in prev_trg_json.get('active_products', []))
+            new_active_products = set(tuple(sorted(d.items())) for d in new_trg_json.get('active_products', []))
+        except Exception as e:
+            print("Exception occurred:", e)
+            return differences
+        added_products = new_active_products - old_active_products
+        removed_products = old_active_products - new_active_products
+        if added_products or removed_products:
+            differences['active_products_changes'] = {
+                'added': list(added_products),
+                'removed': list(removed_products)
+            }
+        return differences
+    elif change_param == 'total_deposited' or change_param == 'total_withdrawn' or change_param == 'cash_balance':
+        old_value = prev_trg_json.get(change_param, 0)
+        new_value = new_trg_json.get(change_param, 0)
+        if old_value != new_value:
+            differences[change_param] = {'old': old_value, 'new': new_value}
+        return differences
+    elif change_param == 'trader_positions':
+        old_positions = {pos['product_key']: pos for pos in prev_trg_json.get('trader_positions', [])}
+        new_positions = {pos['product_key']: pos for pos in new_trg_json.get('trader_positions', [])}
+        position_changes = {}
+        for key, new_pos in new_positions.items():
+            if key not in old_positions:
+                position_changes[key] = {'added': new_pos}
+            elif old_positions[key] != new_pos:
+                position_changes[key] = {'changed': {'old': old_positions[key], 'new': new_pos}}
+        for key in old_positions:
+            if key not in new_positions:
+                position_changes[key] = {'removed': old_positions[key]}
+        if position_changes:
+            differences['trader_positions'] = position_changes
+        return differences
+    elif change_param == 'open_orders':
+        old_orders = set((order['id'] for order in prev_trg_json.get('open_orders', {}).get('orders', [])))
+        new_orders = set((order['id'] for order in new_trg_json.get('open_orders', {}).get('orders', [])))
+        added_orders = new_orders - old_orders
+        if added_orders:
+            differences['open_orders'] = {'added_orders': list(added_orders)}
+
+        removed_orders = old_orders - new_orders
+        if removed_orders:
+            if 'open_orders' not in differences:
+                differences['open_orders'] = {}
+            differences['open_orders']['removed_orders'] = list(removed_orders)
+
+        return differences
+    
+    return differences
+def process_deepdiff(differences, prev_data, new_data, type: str):
+    structured_diff = {
+        "values_changed": [],
+        # "items_added": [],
+        # "items_removed": [],
+        "iterable_item_added": [],
+        "iterable_item_removed": [],
+    }
+    for change_type, changes in differences.items():
+        for path, change in changes.items():
+            if change_type == 'values_changed':
+                if type == 'FILL_OUT':
+                    path_parts = path.replace('root[', '').replace(']', '').split('[')
+                    list_index = int(path_parts[0])
+                    affected_field = path_parts[1].strip('\'\"')
+                    prev_object = prev_data[list_index]
+                    new_object = new_data[list_index]
+                    if affected_field in ['makerOrderId', 'baseSizeConverted']:
+                        structured_diff['values_changed'].append({
+                            "list_index": list_index,
+                            "old_value": change['old_value'],
+                            "new_value": change['new_value'],
+                            "affected_field": affected_field,
+                            "prev_object": prev_object,
+                            "new_object": new_object
+                        })
+                elif type == 'BID_ASK':
+                    path_parts = path.replace('root[', '').replace(']', '').split('[')
+                    list_index = int(path_parts[0])
+                    affected_field = path_parts[1].strip('\'\"')
+                    prev_object = prev_data[list_index]
+                    new_object = new_data[list_index]
+                    structured_diff['values_changed'].append({
+                        "list_index": list_index,
+                        "old_value": change['old_value'],
+                        "new_value": change['new_value'],
+                        "affected_field": affected_field,
+                        "prev_object": prev_object,
+                        "new_object": new_object
+                    })
+            # elif change_type == 'dictionary_item_added':
+            #     structured_diff['items_added'].append(f"New item at {path}: {change}")
+            # elif change_type == 'dictionary_item_removed':
+            #     structured_diff['items_removed'].append(f"Removed item at {path}: {change}")
+            elif change_type == 'iterable_item_added':
+                path_parts = path.replace('root[', '').replace(']', '').split('[')
+                list_index = int(path_parts[0])
+                added_object = new_data[list_index]
+                structured_diff['iterable_item_added'].append({
+                    "list_index": list_index,
+                    "added_object": added_object
+                })
+            elif change_type == 'iterable_item_removed':
+                path_parts = path.replace('root[', '').replace(']', '').split('[')
+                list_index = int(path_parts[0])
+                structured_diff['iterable_item_removed'].append({
+                    "list_index": list_index,
+                    "removed_object": prev_data[list_index]
+                })
+    return structured_diff
 
 def camel_to_snake(name):
     return re.sub(r"(?<!^)(?=[A-Z])", "_", name).lower()
@@ -360,110 +510,71 @@ def convert_userAccount_to_string(events: List[T]) -> List[T]:
     return converted_events
 
 def calculate_bid_ask_changes(
-    prevBidAsks: List[L3OrderbookInfo],
-    newBidAsks: List[L3OrderbookInfo]
+    prevBidsAsks: List[L3OrderbookInfo],
+    newBidsAsks: List[L3OrderbookInfo]
 ) -> Tuple[List[L3OrderbookInfo], List[L3OrderbookInfo], List[L3OrderbookInfo], List[L3OrderbookInfo]]:
 
-    added_bid_asks = []
-    size_changes_at_price = []
-    added_users = []
-    removed_bid_asks = []
+    prev_bids_asks_json = [bid_ask.to_json() for bid_ask in prevBidsAsks]
+    new_bids_asks_json = [bid_ask.to_json() for bid_ask in newBidsAsks]
+    deep_differences_bids_asks = DeepDiff(prev_bids_asks_json, new_bids_asks_json, ignore_order=True)
+    processed_deep_differences_bids_asks = process_deepdiff(deep_differences_bids_asks, prev_bids_asks_json, new_bids_asks_json, "BID_ASK")
+    bid_ask_value_changes = processed_deep_differences_bids_asks["values_changed"]
+    bid_ask_added = processed_deep_differences_bids_asks["iterable_item_added"]
+    bid_ask_removed = processed_deep_differences_bids_asks["iterable_item_removed"]
+    return bid_ask_value_changes, bid_ask_added, bid_ask_removed
 
-    prev_bid_ask_dict = {(d.price, d.user): d for d in prevBidAsks}
-    new_bid_ask_dict = {(d.price, d.user): d for d in newBidAsks}
+def calculate_fill_changes(
+    prev_fill_events: List[FillEventInfo],
+    new_fill_events: List[FillEventInfo],
+    decimals: int,
+    tick_size: int,
+):
+    prev_fill_events_json = [event.to_json() for event in prev_fill_events]
+    new_fill_events_json = [event.to_json() for event in new_fill_events]
 
-    # Identify added bid_asks (new prices and users)
-    for (price, user), new_order in new_bid_ask_dict.items():
-        prev_order = prev_bid_ask_dict.get((price, user))
-        
-        if prev_order is None:
-            added_bid_asks.append(new_order)
-            
-            # Check if the user is entirely new
-            if not any(user == prev.user for prev in prevBidAsks):
-                added_users.append(new_order)
-        
-        else:
-            # Check for size changes
-            size_change = new_order.size - prev_order.size
-            if size_change != 0:
-                size_changes_at_price.append(L3OrderbookInfo(
-                    size=size_change,
-                    price=price,
-                    user=new_order.user,
-                    orderId=new_order.orderId,
-                    orderSide=new_order.orderSide
-                ))
+    for event in prev_fill_events_json:
+        event['makerPrice'] = ((event['makerOrderId'] >> 64) >> 32) / tick_size
+        event['baseSizeConverted'] = event['baseSize'] / (10 ** (decimals + 5)) 
+        event['quoteSizeConverted'] = event['baseSizeConverted'] * event['makerPrice']
     
-    # Identify removed bid_asks
-    for (price, user), prev_order in prev_bid_ask_dict.items():
-        if (price, user) not in new_bid_ask_dict:
-            removed_bid_asks.append(prev_order)
-            
-    return added_bid_asks, size_changes_at_price, added_users, removed_bid_asks
-
-def calculate_fill_changes(prev_fill_events: List[FillEventInfo], new_fill_events: List[FillEventInfo], decimals: int) -> Tuple[List[Dict], List[Dict]]:
-     # Convert each FillEventInfo to a tuple of its FillEvent attributes for comparison
-    prev_event_dicts = {tuple(asdict(event.fill_event).values()): event for event in prev_fill_events}
-    new_event_dicts = {tuple(asdict(event.fill_event).values()): event for event in new_fill_events}
-
-    # Determine added and removed fills based on changes in FillEvent variables
-    added_fills = [event for key, event in new_event_dicts.items() if key not in prev_event_dicts]
-    removed_fills = [event for key, event in prev_event_dicts.items() if key not in new_event_dicts]
+    for event in new_fill_events_json:
+        event['makerPrice'] = ((event['makerOrderId'] >> 64) >> 32) / tick_size
+        event['baseSizeConverted'] = event['baseSize'] / (10 ** (decimals + 5)) 
+        event['quoteSizeConverted'] = event['baseSizeConverted'] * event['makerPrice']
     
-    added_fills_total_baseSize = sum([event.fill_event.baseSize for event in added_fills])
-    removed_fills_total_baseSize = sum([event.fill_event.baseSize for event in removed_fills])
-    
-    added_fills = [
-        {
-            'makerOrderId': event.fill_event.makerOrderId,
-            'quoteSize': event.fill_event.quoteSize,
-            'baseSize': event.fill_event.baseSize,
-            'makerUserAccount': str(event.maker_callback_info.userAccount),
-            'takerUserAccount': str(event.taker_callback_info.userAccount)
-        }
-        for event in added_fills
-    ]
-    removed_fills = [
-        {
-            'makerOrderId': event.fill_event.makerOrderId,
-            'quoteSize': event.fill_event.quoteSize,
-            'baseSize': event.fill_event.baseSize,
-            'makerUserAccount': str(event.maker_callback_info.userAccount),
-            'takerUserAccount': str(event.taker_callback_info.userAccount)
-        }
-        for event in removed_fills
-    ]
-    return added_fills, removed_fills, added_fills_total_baseSize, removed_fills_total_baseSize
+    deep_differences_fill = DeepDiff(prev_fill_events_json, new_fill_events_json, ignore_order=True)
+    processed_deep_differences_fill = process_deepdiff(deep_differences_fill, prev_fill_events_json, new_fill_events_json, "FILL_OUT")
+    fill_value_changes = processed_deep_differences_fill["values_changed"]
+    fill_added = processed_deep_differences_fill["iterable_item_added"]
+    fill_removed = processed_deep_differences_fill["iterable_item_removed"]
 
-def calculate_out_changes(prev_out_events: List[OutEventInfo], new_out_events: List[OutEventInfo], decimals: int) -> Tuple[List[Dict], List[Dict]]:
-    # Convert each OutEventInfo to a tuple of its OutEvent attributes for comparison
-    prev_event_dicts = {tuple(asdict(event.out_event).values()): event for event in prev_out_events}
-    new_event_dicts = {tuple(asdict(event.out_event).values()): event for event in new_out_events}
-    
-    # Determine added and removed outs based on changes in OutEvent variables
-    added_outs = [event for key, event in new_event_dicts.items() if key not in prev_event_dicts]
-    removed_outs = [event for key, event in prev_event_dicts.items() if key not in new_event_dicts]
-    
-    added_outs = [
-        {
-            'orderId': event.out_event.orderId,
-            'baseSize': event.out_event.baseSize,
-            'makerUserAccount': str(event.callback_info.userAccount)
-        }
-        for event in added_outs
-    ]
+    return fill_value_changes, fill_added, fill_removed
 
-    removed_outs = [
-        {
-            'orderId': event.out_event.orderId,
-            'baseSize': event.out_event.baseSize,
-            'makerUserAccount': str(event.callback_info.userAccount)
-        }
-        for event in removed_outs
-    ]
-    return added_outs, removed_outs
- 
+def calculate_out_changes(
+    prev_out_events: List[OutEventInfo],
+    new_out_events: List[OutEventInfo],
+    decimals: int,
+    tick_size: int,
+):
+    prev_out_events_json = [event.to_json() for event in prev_out_events]
+    new_out_events_json = [event.to_json() for event in new_out_events]
+
+    for event in prev_out_events_json:
+        event['price'] = ((event['orderId'] >> 64) >> 32) / tick_size
+        event['baseSizeConverted'] = event['baseSize'] / (10 ** (decimals + 5))
+
+    for event in new_out_events_json:
+        event['price'] = ((event['orderId'] >> 64) >> 32) / tick_size
+        event['baseSizeConverted'] = event['baseSize'] / (10 ** (decimals + 5))
+
+    deep_differences_out = DeepDiff(prev_out_events_json, new_out_events_json, ignore_order=True)
+    processed_deep_differences_out = process_deepdiff(deep_differences_out, prev_out_events_json, new_out_events_json, "FILL_OUT")
+    out_value_changes = processed_deep_differences_out["values_changed"]
+    out_added = processed_deep_differences_out["iterable_item_added"]
+    out_removed = processed_deep_differences_out["iterable_item_removed"]
+
+    return out_value_changes, out_added, out_removed
+
 def trader_position_status(orders_list, current_market_price):
     net_position = 0.0
     avg_bid_price = 0.0

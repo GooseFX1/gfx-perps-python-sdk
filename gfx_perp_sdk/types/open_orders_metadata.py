@@ -24,3 +24,11 @@ class OpenOrdersMetadata:
     @classmethod
     def from_bytes(cls, raw, **kwargs):
         return cls.unpack(raw, converter="bytes", **kwargs)
+
+    def to_json(self):
+        return {
+            "ask_qty_in_book": float(self.ask_qty_in_book.value),
+            "bid_qty_in_book": float(self.bid_qty_in_book.value),
+            "head_index": str(self.head_index),
+            "num_open_orders": str(self.num_open_orders),
+        }

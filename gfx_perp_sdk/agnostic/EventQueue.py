@@ -33,6 +33,18 @@ class FillEventInfo:
     maker_callback_info: CallbackInfo
     taker_callback_info: CallbackInfo
 
+    def to_json(self):
+        return {
+            "eventType": "FillEvent",
+            "takerSide": self.fill_event.takerSide,
+            "makerOrderId": self.fill_event.makerOrderId,
+            "quoteSize": self.fill_event.quoteSize,
+            "baseSize": self.fill_event.baseSize,
+            "maker_trg_account": self.maker_callback_info.userAccount.__str__(),
+            "maker_open_order_idx": self.maker_callback_info.openOrderIdx,
+            "taker_trg_account": self.taker_callback_info.userAccount.__str__(),
+            "take_open_order_idx": self.taker_callback_info.openOrderIdx,
+        }
 @dataclass
 class OutEvent:
     tag: int
@@ -45,6 +57,16 @@ class OutEvent:
 class OutEventInfo:
     out_event: OutEvent
     callback_info: CallbackInfo
+
+    def to_json(self):
+        return {
+            "eventType": "OutEvent",
+            "side": self.out_event.side,
+            "orderId": self.out_event.orderId,
+            "baseSize": self.out_event.baseSize,
+            "callback_trg_account":self.callback_info.userAccount.__str__(),
+            "callback_open_order_idx": self.callback_info.openOrderIdx,
+        }
 
 @dataclass
 class EventQueueHeader:
@@ -79,8 +101,8 @@ class EventQueue:
                 break  # Stop if there are not enough bytes for a complete event
             tag = event_chunk[0]
             if tag == 0:  # Assuming 0 indicates FillEvent
-                takerSide, quoteSize, makerOrderIdUp, makerOrderIdDown, baseSize = struct.unpack(
-                    '<B6xQQQQ', event_chunk[1: FillEvent.LEN])
+                takerSide, quoteSize, makerOrderIdDown, makerOrderIdUp, baseSize = struct.unpack(
+                    '<B6xQQQQ', event_chunk[1: FillEvent.LEN])             
                 makerOrderId = combine_u64_to_u128(
                     makerOrderIdUp, makerOrderIdDown)
                 fill_event = FillEvent(
@@ -100,7 +122,7 @@ class EventQueue:
                 fill_event_info  = FillEventInfo(fill_event, callback_maker, callback_taker)
                 fill_events.append(fill_event_info)
             elif tag == 1:  # Assuming 1 indicates OutEvent
-                side, orderIdUp, orderIdDown, baseSize = struct.unpack(
+                side, orderIdDown, orderIdUp, baseSize = struct.unpack(
                     '<B14xQQQ', event_chunk[1: FillEvent.LEN])
                 orderId = combine_u64_to_u128(orderIdUp, orderIdDown)
                 out_event = OutEvent(tag, side, orderId, baseSize)

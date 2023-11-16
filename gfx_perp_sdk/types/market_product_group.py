@@ -39,7 +39,8 @@ class MarketProductGroup:
     risk_model_configuration_acct: Solana_pubkey
     active_flags_products: Bitset
     ewma_windows: FixedLenArray[U64, 4]
-    market_products: FixedLenArray[U8, 143360]
+    # market_products: FixedLenArray[U8, 143360]
+    market_products: "ProductArray"
     vault_bump: U16
     risk_and_fee_bump: U16
     find_fees_discriminant_len: U16
@@ -65,7 +66,6 @@ class MarketProductGroup:
     def from_bytes(cls, raw, **kwargs):
         return cls.unpack(raw, converter="bytes", **kwargs)
 
-    @classmethod
     def to_json(self):
         return {
             'tag': int(self.tag),
@@ -73,16 +73,16 @@ class MarketProductGroup:
             'authority': str(PublicKey(self.authority.bytes)),
             'successor': str(PublicKey(self.successor.bytes)),
             'vault_mint': str(PublicKey(self.vault_mint.bytes)),
-            'collected_fees': self.collected_fees.value,
+            'collected_fees': float(self.collected_fees.value),
             'fee_collector': str(PublicKey(self.fee_collector.bytes)),
             'decimals': int(self.decimals),
             'risk_engine_program_id': str(PublicKey(self.risk_engine_program_id.bytes)),
             'fee_model_program_id': str(PublicKey(self.fee_model_program_id.bytes)),
             'fee_model_configuration_acct': str(PublicKey(self.fee_model_configuration_acct.bytes)),
             'risk_model_configuration_acct': str(PublicKey(self.risk_model_configuration_acct.bytes)),
-            'active_flags_products': str(self.active_flags_products),
+            'active_flags_products': [format(x, '0128b') for x in self.active_flags_products.inner],
             'ewma_windows': [int(x) for x in self.ewma_windows],
-            'market_products': [int(x) for x in self.market_products],
+            'market_products': self.market_products.to_json(),
             'vault_bump': int(self.vault_bump),
             'risk_and_fee_bump': int(self.risk_and_fee_bump),
             'find_fees_discriminant_len': int(self.find_fees_discriminant_len),
@@ -100,10 +100,10 @@ class MarketProductGroup:
             'sequence_number': str(self.sequence_number),
         }
 
-#    def active_products(self) -> Iterable["types.Product"]:
-#        for p in self.market_products.array:
-#            if p.metadata().product_key != SENTINAL_KEY:
-#                yield p
+    def active_products(self) -> Iterable["types.Product"]:
+        for p in self.market_products.array:
+            if p.metadata().product_key != SENTINAL_KEY:
+                yield p
 
 
-# SENTINAL_KEY = PublicKey.from_string("11111111111111111111111111111111")
+SENTINAL_KEY = PublicKey.from_string("11111111111111111111111111111111")

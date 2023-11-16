@@ -26,3 +26,11 @@ class OpenOrders:
     @classmethod
     def from_bytes(cls, raw, **kwargs):
         return cls.unpack(raw, converter="bytes", **kwargs)
+
+    def to_json(self):
+        return {
+            "free_list_head": str(self.free_list_head),
+            "total_open_orders": str(self.total_open_orders),
+            "products": [product.to_json() for product in self.products if product.num_open_orders != 0 and product.ask_qty_in_book != 0 and     product.bid_qty_in_book !=0],
+            "orders": [order.to_json() for order in self.orders if order.id != 0],
+        }

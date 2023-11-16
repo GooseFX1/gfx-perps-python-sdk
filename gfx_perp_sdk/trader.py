@@ -91,7 +91,8 @@ class Trader(Perp):
     def get_open_orders(self, product: Product):
         l3ob = product.get_orderbook_L3()
         open_orders = utils.filterOpenOrders(l3ob, str(self.trgKey))
-        return utils.get_user_info_from_trader_risk_group(self.connection, open_orders)
+        open_orders_json = {key: [order_info.to_json() for order_info in value] for key, value in open_orders.items()}
+        return open_orders_json
 
     def fetch_trader_risk_group(self):
         response = self.connection.get_account_info(
@@ -100,7 +101,7 @@ class Trader(Perp):
             raise KeyError("No Trader Risk Group account found for this trgKey.")
         r = response.value.data
         decoded = r[8:]
-        trg = TraderRiskGroup.from_bytes(decoded)
+        trg: TraderRiskGroup = TraderRiskGroup.from_bytes(decoded)
         self.trgBytes = decoded
         return trg
     
@@ -264,12 +265,36 @@ class Trader(Perp):
     def refresh_data(self):
         self.init()
         
-    async def subscribe_trader_positions(self, product: Product, on_fills_change, on_outs_change):
-        await product.subscribe_to_trades(on_fills_change, on_outs_change)
-        
-    async def get_position_update(self):
+    async def subscribe_trader_positions(self, product: Product, on_fill_out_change, event_type: str):
+        await product.subscribe_to_trades(self.trgKey, on_fill_out_change, event_type)
+    
+    async def subscribe_to_trader_risk_group(self, on_trader_state_change, change_param: str):
+        wss = self.connection._provider.endpoint_uri.replace("http", "ws")
+        async with connect(wss) as solana_websocket:
+            solana_websocket: SolanaWsClientProtocol
+            await solana_websocket.account_subscribe(pubkey=self.trgKey, commitment="processed", encoding="base64")
+            first_resp = await solana_websocket.recv()
+            subscription_id = first_resp[0].result if first_resp and hasattr(
+                first_resp[0], 'result') else None
+            prevTrg = self.fetch_trader_risk_group()
+            while True:
+                try:
+                    msg = await solana_websocket.recv()
+                    if msg:
+                        r1 = msg[0].result.value.data
+                        decoded = r1[8:]
+                        currTrg: TraderRiskGroup = TraderRiskGroup.from_bytes(decoded)
+                        trg_diffs = utils.compare_trader_risk_groups(prevTrg, currTrg, change_param)
+                        if trg_diffs != {}:
+                            on_trader_state_change(trg_diffs)
+                        prevTrg = currTrg
+                except Exception:
+                    raise ModuleNotFoundError(
+                        "unable to process the Trader Risk Group")
+
+    async def get_position_update(self, current_market_price):
         open_orders = self.get_open_orders(self.product)
-        position_status = utils.trader_position_status(open_orders)
+        position_status = utils.trader_position_status(open_orders, current_market_price)
         return position_status
     
     async def subscribe_to_token_balance_change(self, callback_func):
