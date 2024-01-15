@@ -1,3 +1,4 @@
+from typing import Optional
 from solders.pubkey import Pubkey as PublicKey
 from solders.keypair import Keypair
 from solders.rpc.responses import GetAccountInfoResp
@@ -16,6 +17,7 @@ from .instructions.withdraw_funds import (withdraw_funds, WithdrawFundsParams)
 from .instructions.new_order import (new_order, NewOrderParams)
 from .instructions.cancel_order import (cancel_order, CancelOrderParams)
 from .instructions.close_trader_risk_group import close_trader_risk_group
+from podite import (U32)
 
 class TraderPosition:
     quantity: str
@@ -169,7 +171,9 @@ class Trader(Perp):
         return [[ix1], [self.wallet]]
 
     def new_order_ix(self, product: Product, size: Fractional,
-                     price: Fractional, side: str, order_type: str):
+                     price: Fractional, side: str, order_type: str, 
+                     self_trade_behaviour: Optional[base.SelfTradeBehavior] = base.SelfTradeBehavior.DECREMENT_TAKE,  
+                     callback_id: Optional[U32] = 0):
         if side == 'bid':
             sideParam = base.Side.BID
         elif side == 'ask':
@@ -177,7 +181,7 @@ class Trader(Perp):
         else:
             raise KeyError("Side can only be bid or ask")
 
-        self_trade_behaviour = base.SelfTradeBehavior.DECREMENT_TAKE
+        # self_trade_behaviour = base.SelfTradeBehavior.DECREMENT_TAKE
         match_limit = 1000
         if order_type == "limit":
             order_type_param = OrderType.LIMIT
@@ -198,7 +202,8 @@ class Trader(Perp):
                                    order_type_param,
                                    self_trade_behaviour,
                                    match_limit,
-                                   price
+                                   price,
+                                   callback_id
                                    )
         ix1 = new_order(
             self.wallet.pubkey(),

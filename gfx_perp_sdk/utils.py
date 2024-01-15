@@ -698,17 +698,19 @@ def create_token_account_info(bytes_data):
         close_authority,
     )
 
-def get_transaction_status(connection: Client, raw_sigs: List[str]):
-    sigs = [Signature.from_string(sig) for sig in raw_sigs]
+def get_transaction_status(connection: Client, raw_sigs: List[Signature]):
     sig_status_mapping = {}
-    sig_status = connection.get_signature_statuses(sigs)
+    sig_status = connection.get_signature_statuses(signatures=raw_sigs, search_transaction_history=True)
     
     for i, transaction_status in enumerate(sig_status.value):
-        if transaction_status is not None:
-            # Failed transaction with error code
-            sig_status_mapping[str(sigs[i])] = transaction_status.err
-        else:
+        if transaction_status is None:
+            sig_status_mapping[str(raw_sigs[i])] = "Unable to Get Signature Status"
+            continue
+        if transaction_status.err is not None:
             # Successful transaction
-            sig_status_mapping[str(sigs[i])] = "Success"
+            sig_status_mapping[str(raw_sigs[i])] = "Success"
+        else:
+            # Failed transaction with error code
+            sig_status_mapping[str(raw_sigs[i])] = transaction_status.err
 
     return sig_status_mapping

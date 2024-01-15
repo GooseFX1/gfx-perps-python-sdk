@@ -1,7 +1,7 @@
 import asyncio
 import pytest
-from gfx_perp_sdk import (Perp, Product, Trader)
-from gfx_perp_sdk.types import Fractional
+from gfx_perp_sdk import (Perp, Product, Trader, utils)
+from gfx_perp_sdk.types import Fractional, base
 from solana.rpc.api import Client
 from solana.rpc import types
 from solana.transaction import Transaction
@@ -106,7 +106,7 @@ async def test_trader_deposit_funds():
     ix = t.deposit_funds_ix(Fractional.to_decimal(100))
     response = send_solana_transaction(keyp, ix[0], ix[1])
     print("\n response:", response)
-    status = utils.get_transaction_status(connection=rpc_client, raw_sigs=[response.__str__()])
+    status = utils.get_transaction_status(connection=rpc_client, raw_sigs=[response])
     print("\n status:", status)
     assert response != None
 
@@ -140,16 +140,46 @@ async def test_trader_open_orders():
 # @pytest.mark.skip(reason="This test will send transactions to the Solana network.")
 @pytest.mark.asyncio
 async def test_trader_new_order_single():
-    perp = Perp(rpc_client, 'devnet',keyp)
+    perp = Perp(rpc_client, 'mainnet',keyp)
     perp.init()
     product = Product(perp)
     product.init_by_index(0)
     t = Trader(perp) 
     t.init()
-    ix = t.new_order_ix(product, Fractional.to_decimal(50000), Fractional.to_decimal(35), 'ask', 'limit')
+    ix = t.new_order_ix(
+        product, 
+        Fractional.to_decimal(1000), 
+        Fractional.to_decimal(35),
+        'ask', 
+        'limit'
+        )
     response = send_solana_transaction(keyp, ix[0], ix[1])
     print()
-    status = utils.get_transaction_status(connection=rpc_client, raw_sigs=[response.__str__()])
+    status = utils.get_transaction_status(connection=rpc_client, raw_sigs=[response])
+    print("\n status:", status)
+    assert response != None
+
+# @pytest.mark.skip(reason="This test will send transactions to the Solana network.")
+@pytest.mark.asyncio
+async def test_trader_new_order_single_with_callback_id():
+    perp = Perp(rpc_client, 'mainnet',keyp)
+    perp.init()
+    product = Product(perp)
+    product.init_by_index(0)
+    t = Trader(perp) 
+    t.init()
+    ix = t.new_order_ix(
+        product, 
+        Fractional.to_decimal(1000), 
+        Fractional.to_decimal(35), 
+        'bid', 
+        'limit',
+        base.SelfTradeBehavior.ABORT_TRANSACTION,
+        324567
+        )
+    response = send_solana_transaction(keyp, ix[0], ix[1])
+    print()
+    status = utils.get_transaction_status(connection=rpc_client, raw_sigs=[response])
     print("\n status:", status)
     assert response != None
 
