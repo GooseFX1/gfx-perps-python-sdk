@@ -1,3 +1,4 @@
+from typing import Optional
 from solders.pubkey import Pubkey as PublicKey
 from solders.keypair import Keypair
 from solders.rpc.responses import GetAccountInfoResp
@@ -15,6 +16,8 @@ from .instructions.deposit_funds import (deposit_funds, DepositFundsParams)
 from .instructions.withdraw_funds import (withdraw_funds, WithdrawFundsParams)
 from .instructions.new_order import (new_order, NewOrderParams)
 from .instructions.cancel_order import (cancel_order, CancelOrderParams)
+from .instructions.close_trader_risk_group import close_trader_risk_group
+from podite import (U32)
 
 class TraderPosition:
     quantity: str
@@ -168,7 +171,9 @@ class Trader(Perp):
         return [[ix1], [self.wallet]]
 
     def new_order_ix(self, product: Product, size: Fractional,
-                     price: Fractional, side: str, order_type: str):
+                     price: Fractional, side: str, order_type: str, 
+                     self_trade_behaviour: Optional[base.SelfTradeBehavior] = base.SelfTradeBehavior.DECREMENT_TAKE,  
+                     callback_id: Optional[U32] = 0):
         if side == 'bid':
             sideParam = base.Side.BID
         elif side == 'ask':
@@ -176,7 +181,7 @@ class Trader(Perp):
         else:
             raise KeyError("Side can only be bid or ask")
 
-        self_trade_behaviour = base.SelfTradeBehavior.DECREMENT_TAKE
+        # self_trade_behaviour = base.SelfTradeBehavior.DECREMENT_TAKE
         match_limit = 1000
         if order_type == "limit":
             order_type_param = OrderType.LIMIT
@@ -197,7 +202,8 @@ class Trader(Perp):
                                    order_type_param,
                                    self_trade_behaviour,
                                    match_limit,
-                                   price
+                                   price,
+                                   callback_id
                                    )
         ix1 = new_order(
             self.wallet.pubkey(),
@@ -261,6 +267,17 @@ class Trader(Perp):
             SYS_PROGRAM_ID)
 
         return [[ix1], [self.wallet]]
+    
+    def close_trader_risk_group_ix(self):
+        ix =  close_trader_risk_group(
+            owner=self.wallet.pubkey(),
+            trader_risk_group=self.trgKey,
+            market_product_group=self.ADDRESSES["MPG_ID"],
+            system_program=SYS_PROGRAM_ID,
+            program_id=self.ADDRESSES["DEX_ID"]
+        )
+        
+        return [[ix], [self.wallet]]
 
     def refresh_data(self):
         self.init()
@@ -296,6 +313,46 @@ class Trader(Perp):
         open_orders = self.get_open_orders(self.product)
         position_status = utils.trader_position_status(open_orders, current_market_price)
         return position_status
+    
+    def get_cash_balance(self):
+        trg = utils.get_trader_risk_group(self.connection, self.trgKey)
+        return trg.cash_balance.value / 10 ** 5
+    
+    def get_deposited_amount(self):
+        trg = utils.get_trader_risk_group(self.connection, self.trgKey)
+        return trg.total_deposited.value / 10 ** 5
+
+    def get_withdrawn_amount(self):
+        trg = utils.get_trader_risk_group(self.connection, self.trgKey)
+        return trg.total_withdrawn.value / 10 ** 5
+    
+    def get_trader_positions_by_product_index(self, index: int):
+        self.refresh_data()
+        # check product_key of traderPosition to be equal to product.PRODUCT_ID
+        products = None
+        products = self.ADDRESSES
+        if index > len(products['PRODUCTS']) - 1:
+            raise IndexError('Index out of bounds')
+        positions = []
+        for traderPosition in self.traderPositions:
+            if traderPosition.index == index:
+                positions.append(traderPosition)
+        return positions
+    
+    def get_trader_positions_by_product_name(self, product_name: str):
+        self.refresh_data()
+        selectedProductIndex = None
+        products = self.ADDRESSES
+        for index in range(0, len(products['PRODUCTS'])):
+            if products['PRODUCTS'][index]['name'] == product_name:
+                selectedProductIndex = index
+        if selectedProductIndex == None:
+            raise IndexError('Index out of bounds')
+        positions = []
+        for traderPosition in self.traderPositions:
+            if traderPosition.index == selectedProductIndex:
+                positions.append(traderPosition)
+        return positions
     
     async def subscribe_to_token_balance_change(self, callback_func):
         wss = self.connection._provider.endpoint_uri.replace("http", "ws")
