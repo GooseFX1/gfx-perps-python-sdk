@@ -29,5 +29,4 @@ class InstructionTag(Enum[U64]):
     SWEEP_FEES = InstructionDiscriminant()
     CHOOSE_SUCCESSOR = InstructionDiscriminant()
     CLAIM_AUTHORITY = InstructionDiscriminant()
-    CLOSE_TRADER_RISK_GROUP = InstructionDiscriminant()
     # LOCK-END
