@@ -173,7 +173,7 @@ class Trader(Perp):
     def new_order_ix(self, product: Product, size: Fractional,
                      price: Fractional, side: str, order_type: str, 
                      self_trade_behaviour: Optional[base.SelfTradeBehavior] = base.SelfTradeBehavior.DECREMENT_TAKE,  
-                     callback_id: Optional[U32] = 0):
+                     callback_id: U32 = 0):
         if side == 'bid':
             sideParam = base.Side.BID
         elif side == 'ask':

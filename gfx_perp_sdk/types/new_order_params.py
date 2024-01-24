@@ -24,7 +24,7 @@ class NewOrderParams:
     self_trade_behavior: SelfTradeBehavior
     match_limit: U64 
     limit_price: Fractional
-    callback_id: Optional[U32] = 0
+    callback_id: U32 = 0
     # LOCK-END
 
     @classmethod

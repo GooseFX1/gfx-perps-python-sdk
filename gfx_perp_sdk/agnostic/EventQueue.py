@@ -9,14 +9,16 @@ from gfx_perp_sdk.agnostic.Slabs import combine_u64_to_u128
 class CallbackInfo:
     userAccount: PublicKey
     openOrderIdx: int
+    callbackId: int
     LEN: int = 40
 
     @staticmethod
     def deserialize(data: bytes) -> 'CallbackInfo':
         user_account_bytes = data[:32]
-        open_order_idx = struct.unpack('<Q', data[32:40])[0]
+        open_order_idx = struct.unpack('<L', data[32:36])[0]
+        callback_id = struct.unpack('<L', data[36:40])[0]
         user_account = PublicKey(user_account_bytes)
-        return CallbackInfo(user_account, open_order_idx)
+        return CallbackInfo(user_account, open_order_idx, callback_id)
 
 @dataclass
 class FillEvent:
