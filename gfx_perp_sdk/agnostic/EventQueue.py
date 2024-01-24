@@ -43,9 +43,9 @@ class FillEventInfo:
             "quoteSize": self.fill_event.quoteSize,
             "baseSize": self.fill_event.baseSize,
             "maker_trg_account": self.maker_callback_info.userAccount.__str__(),
-            "maker_open_order_idx": self.maker_callback_info.openOrderIdx,
+            "maker_callback_id": self.maker_callback_info.callbackId,
             "taker_trg_account": self.taker_callback_info.userAccount.__str__(),
-            "take_open_order_idx": self.taker_callback_info.openOrderIdx,
+            "taker_callback_id": self.taker_callback_info.callbackId,
         }
 @dataclass
 class OutEvent:
