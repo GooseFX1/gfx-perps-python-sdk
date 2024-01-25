@@ -27,6 +27,7 @@ def send_solana_transaction(wallet: Keypair, ixs: [TransactionInstruction], sign
         transaction, *signers, opts=types.TxOpts(skip_preflight=True))
     return result.value
 
+
 @pytest.mark.skip(reason="This test will send transactions to the Solana network.")
 # @pytest.mark.asyncio
 async def test_perp_init():
@@ -91,8 +92,6 @@ async def test_create_trader_risk():
     ix = t.create_trader_account_ixs()
     response = send_solana_transaction(keyp, ix[0], ix[1])
     print("\n response:", response)
-    status = utils.get_transaction_status([response])
-    
     assert response != None
 
 @pytest.mark.skip(reason="This test will send transactions to the Solana network.")
@@ -105,12 +104,9 @@ async def test_trader_deposit_funds():
     ix = t.deposit_funds_ix(Fractional.to_decimal(100))
     response = send_solana_transaction(keyp, ix[0], ix[1])
     print("\n response:", response)
-    status = utils.get_transaction_status(connection=rpc_client, raw_sigs=[response])
-    print("\n status:", status)
     assert response != None
 
 @pytest.mark.skip(reason="This test will send transactions to the Solana network.")
-# @pytest.mark.asyncio
 async def test_trader_withdraw_funds():
     perp = Perp(rpc_client, 'mainnet',keyp)
     perp.init()
@@ -138,19 +134,13 @@ async def test_trader_open_orders():
 @pytest.mark.skip(reason="This test will send transactions to the Solana network.")
 # @pytest.mark.asyncio
 async def test_trader_new_order_single():
-    perp = Perp(rpc_client, 'mainnet',keyp)
+    perp = Perp(rpc_client, 'devnet',keyp)
     perp.init()
     product = Product(perp)
     product.init_by_index(0)
     t = Trader(perp) 
     t.init()
-    ix = t.new_order_ix(
-        product, 
-        Fractional.to_decimal(1000), 
-        Fractional.to_decimal(35),
-        'ask', 
-        'limit'
-        )
+    ix = t.new_order_ix(product, Fractional.to_decimal(50000), Fractional.to_decimal(35), 'ask', 'limit')
     response = send_solana_transaction(keyp, ix[0], ix[1])
     print()
     status = utils.get_transaction_status(connection=rpc_client, raw_sigs=[response])
@@ -182,7 +172,6 @@ async def test_trader_new_order_single_with_callback_id():
     assert response != None
 
 @pytest.mark.skip(reason="This test will send transactions to the Solana network.")
-# @pytest.mark.asyncio
 async def test_trader_new_order_multiple():
     perp = Perp(rpc_client, 'devnet',keyp)
     perp.init()
@@ -227,8 +216,8 @@ async def test_trader_cancel_order_multiple():
     assert response != None
 
 
-# @pytest.mark.asyncio
-@pytest.mark.skip(reason="This test will send transactions to the Solana network.")
+@pytest.mark.asyncio
+# @pytest.mark.skip(reason="This test will send transactions to the Solana network.")
 async def test_multi_new_orders():
     perp = Perp(rpc_client, 'mainnet', keyp)
     perp.init()

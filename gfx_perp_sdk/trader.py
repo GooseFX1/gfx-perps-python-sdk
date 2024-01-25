@@ -17,8 +17,7 @@ from .instructions.withdraw_funds import (withdraw_funds, WithdrawFundsParams)
 from .instructions.new_order import (new_order, NewOrderParams)
 from .instructions.cancel_order import (cancel_order, CancelOrderParams)
 from .instructions.close_trader_risk_group import close_trader_risk_group
-from podite import (U32)
-
+from podite import U32
 class TraderPosition:
     quantity: str
     averagePrice: str
@@ -216,7 +215,7 @@ class Trader(Perp):
         else:
             raise KeyError("Side can only be bid or ask")
 
-        # self_trade_behaviour = base.SelfTradeBehavior.DECREMENT_TAKE
+        self_trade_behaviour = base.SelfTradeBehavior.DECREMENT_TAKE
         match_limit = 1000
         if order_type == "limit":
             order_type_param = OrderType.LIMIT
@@ -237,8 +236,7 @@ class Trader(Perp):
                                    order_type_param,
                                    self_trade_behaviour,
                                    match_limit,
-                                   price,
-                                   callback_id
+                                   price
                                    )
         ix1 = new_order(
             self.wallet.pubkey(),
@@ -302,17 +300,6 @@ class Trader(Perp):
             SYS_PROGRAM_ID)
 
         return [[ix1], [self.wallet]]
-    
-    def close_trader_risk_group_ix(self):
-        ix =  close_trader_risk_group(
-            owner=self.wallet.pubkey(),
-            trader_risk_group=self.trgKey,
-            market_product_group=self.ADDRESSES["MPG_ID"],
-            system_program=SYS_PROGRAM_ID,
-            program_id=self.ADDRESSES["DEX_ID"]
-        )
-        
-        return [[ix], [self.wallet]]
 
     def close_trader_risk_group_ix_for_trg(self, trgKey: PublicKey):
         ix =  close_trader_risk_group(

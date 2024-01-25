@@ -1,5 +1,4 @@
 from solders.pubkey import Pubkey as PublicKey
-from solders.signature import Signature
 from solana.rpc.api import Client
 from solana.rpc.types import MemcmpOpts
 from solana.transaction import AccountMeta
@@ -7,12 +6,11 @@ from spl.token._layouts import ACCOUNT_LAYOUT
 from gfx_perp_sdk.agnostic.EventQueue import FillEventInfo, OutEventInfo
 from gfx_perp_sdk.agnostic.Slabs import OrderSide, Slab
 from gfx_perp_sdk.constant_instructions.instructions import initialize_trader_acct_ix
-import podite
 import re
 import json
 from dataclasses import asdict, dataclass
 from hashlib import sha256
-from podite import U64
+from podite import U64, Variant
 from typing import List, Dict, Tuple, TypeVar, Union, NamedTuple, Optional
 from copy import deepcopy
 from gfx_perp_sdk.constants.perps_constants import MINT_DECIMALS, TOKEN_PROGRAM_ID
@@ -150,8 +148,8 @@ def process_deserialized_slab_data(bidDeserialized: Slab, askDeserialized: Slab)
     
 def getTraderRiskGroup(wallet: PublicKey, connection: Client, DEX_ID: PublicKey, MPG_ID: PublicKey):
     try:
-        m1 = [MemcmpOpts(offset=16, bytes=MPG_ID.__bytes__())]
-        m1.append(MemcmpOpts(offset=48, bytes=wallet.__bytes__()))
+        m1 = [MemcmpOpts(offset=48, bytes=wallet.__str__())]
+        m1.append(MemcmpOpts(offset=16, bytes=MPG_ID.__str__()))
         res = connection.get_program_accounts(
             DEX_ID, commitment="confirmed", encoding="base64", filters=m1)
         result = res.value
@@ -312,7 +310,7 @@ def get_trader_risk_group(connection: Client, trgKey: PublicKey):
     return trg
 
 def get_user_info_bid_ask(connection: Client, bid_ask: L3OrderbookInfo):
-    userWalletPubkey = get_trader_risk_group(connection, PublicKey.from_string(bid_ask.user)).owner
+    userWalletPubkey = get_trader_from_trader_risk_group(connection, PublicKey.from_string(bid_ask.user)) 
     userWallet = PublicKey(Solana_pubkey.to_bytes(userWalletPubkey))
     userWallet = str(userWallet)
     return {
@@ -325,7 +323,7 @@ def get_user_info_bid_ask(connection: Client, bid_ask: L3OrderbookInfo):
         
 def get_user_info_from_trader_risk_group(connection: Client, order_list: Dict[str, List[L3OrderbookInfo]], trgKey: PublicKey):
     orders_list_with_user = {'bids': [], 'asks': []}
-    userWalletPubkey = get_trader_risk_group(connection, trgKey).owner 
+    userWalletPubkey = get_trader_from_trader_risk_group(connection, trgKey) 
     for bid in order_list["bids"]:
         orders_list_with_user['bids'].append({
             'size': bid.size, 
@@ -490,11 +488,11 @@ def sighash(namespace: str, name: str) -> int:
 
     return U64.from_bytes(hash_bytes[:8])
 
-class AccountDiscriminant(podite.Variant):
+class AccountDiscriminant(Variant):
     def assign_value(self, cls, prev_value):
         self.value = sighash("account", snake_to_pascal(self.name.lower()))
 
-class InstructionDiscriminant(podite.Variant):
+class InstructionDiscriminant(Variant):
     def assign_value(self, cls, prev_value):
         self.value = sighash("global", self.name.lower())
 
@@ -736,20 +734,3 @@ def create_token_account_info(bytes_data):
         rent_exempt_reserve,
         close_authority,
     )
-
-def get_transaction_status(connection: Client, raw_sigs: List[Signature]):
-    sig_status_mapping = {}
-    sig_status = connection.get_signature_statuses(signatures=raw_sigs, search_transaction_history=True)
-    
-    for i, transaction_status in enumerate(sig_status.value):
-        if transaction_status is None:
-            sig_status_mapping[str(raw_sigs[i])] = "Unable to Get Signature Status"
-            continue
-        if transaction_status.err is not None:
-            # Successful transaction
-            sig_status_mapping[str(raw_sigs[i])] = "Success"
-        else:
-            # Failed transaction with error code
-            sig_status_mapping[str(raw_sigs[i])] = transaction_status.err
-
-    return sig_status_mapping
