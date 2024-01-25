@@ -4,7 +4,7 @@ from solana.rpc.api import Client
 from solana.rpc.types import MemcmpOpts
 from solana.transaction import AccountMeta
 from spl.token._layouts import ACCOUNT_LAYOUT
-from gfx_perp_sdk.agnostic.EventQueue import CallbackInfo, FillEventInfo, OutEvent, OutEventInfo
+from gfx_perp_sdk.agnostic.EventQueue import FillEventInfo, OutEventInfo
 from gfx_perp_sdk.agnostic.Slabs import OrderSide, Slab
 from gfx_perp_sdk.constant_instructions.instructions import initialize_trader_acct_ix
 import podite
@@ -162,6 +162,20 @@ def getTraderRiskGroup(wallet: PublicKey, connection: Client, DEX_ID: PublicKey,
     except:
         print("error in getting trg")
         return None
+def getAllTraderRiskGroup(wallet: PublicKey, connection: Client, DEX_ID: PublicKey, MPG_ID: PublicKey):
+    try:
+        m1 = [MemcmpOpts(offset=16, bytes=MPG_ID.__bytes__())]
+        m1.append(MemcmpOpts(offset=48, bytes=wallet.__bytes__()))
+        res = connection.get_program_accounts(
+            DEX_ID, commitment="confirmed", encoding="base64", filters=m1)
+        result = res.value
+        if len(result) == 0:
+            return None
+        pubkeys = [account.pubkey for account in result]
+        return pubkeys
+    except:
+        print("error in getting trg")
+        return None
 
 def getUserAta(wallet: PublicKey, vault_mint: PublicKey):
     return PublicKey.find_program_address([
@@ -294,9 +308,8 @@ def get_trader_risk_group(connection: Client, trgKey: PublicKey):
         raise KeyError("No Trader Risk Group account found for this trgKey.")
     r = response.value.data
     decoded = r[8:]
-    trg = TraderRiskGroup.from_bytes(decoded)
+    trg: TraderRiskGroup = TraderRiskGroup.from_bytes(decoded)
     return trg
-
 
 def get_user_info_bid_ask(connection: Client, bid_ask: L3OrderbookInfo):
     userWalletPubkey = get_trader_risk_group(connection, PublicKey.from_string(bid_ask.user)).owner
@@ -535,32 +548,58 @@ def calculate_bid_ask_changes(
     bid_ask_removed = processed_deep_differences_bids_asks["iterable_item_removed"]
     return bid_ask_value_changes, bid_ask_added, bid_ask_removed
 
+def compare_slabs(a: L3OrderbookInfo,b: L3OrderbookInfo) -> bool:
+    return (a.size == b.size and
+            a.price == b.price and
+            a.user == b.user and
+            a.orderId == b.orderId and
+            a.orderSide == b.orderSide)
+
+def get_slab_changes(
+        prev_slab_data: List[L3OrderbookInfo],
+        current_slab_data: List[L3OrderbookInfo]
+) -> List[L3OrderbookInfo]:
+    new_slab_data: List[L3OrderbookInfo] = []
+
+    for current_slab in current_slab_data:
+        found = False
+        for prev_slab in prev_slab_data:
+            is_same = compare_slabs(current_slab, prev_slab)
+            if is_same:
+                found = True
+                break
+
+        if not found:
+            new_slab_data.append(current_slab)
+
+    return new_slab_data
+
+def compare_events(a: FillEventInfo, b: FillEventInfo) -> bool:
+    return (a.fill_event.baseSize == b.fill_event.baseSize and
+            a.fill_event.quoteSize == b.fill_event.quoteSize and
+            a.fill_event.makerOrderId == b.fill_event.makerOrderId and
+            a.fill_event.takerSide == b.fill_event.takerSide and
+            str(a.maker_callback_info) == str(b.maker_callback_info) and
+            str(a.taker_callback_info) == str(b.taker_callback_info))
+
 def calculate_fill_changes(
     prev_fill_events: List[FillEventInfo],
-    new_fill_events: List[FillEventInfo],
-    decimals: int,
-    tick_size: int,
-):
-    prev_fill_events_json = [event.to_json() for event in prev_fill_events]
-    new_fill_events_json = [event.to_json() for event in new_fill_events]
+    current_fill_events: List[FillEventInfo],
+) -> List[FillEventInfo]:
+    new_fill_events: List[FillEventInfo] = []
 
-    for event in prev_fill_events_json:
-        event['makerPrice'] = ((event['makerOrderId'] >> 64) >> 32) / tick_size
-        event['baseSizeConverted'] = event['baseSize'] / (10 ** (decimals + 5)) 
-        event['quoteSizeConverted'] = event['baseSizeConverted'] * event['makerPrice']
-    
-    for event in new_fill_events_json:
-        event['makerPrice'] = ((event['makerOrderId'] >> 64) >> 32) / tick_size
-        event['baseSizeConverted'] = event['baseSize'] / (10 ** (decimals + 5)) 
-        event['quoteSizeConverted'] = event['baseSizeConverted'] * event['makerPrice']
-    
-    deep_differences_fill = DeepDiff(prev_fill_events_json, new_fill_events_json, ignore_order=True)
-    processed_deep_differences_fill = process_deepdiff(deep_differences_fill, prev_fill_events_json, new_fill_events_json, "FILL_OUT")
-    fill_value_changes = processed_deep_differences_fill["values_changed"]
-    fill_added = processed_deep_differences_fill["iterable_item_added"]
-    fill_removed = processed_deep_differences_fill["iterable_item_removed"]
+    for current_fill_event in current_fill_events:
+        found = False
+        for prev_fill_event in prev_fill_events:
+            is_same = compare_events(current_fill_event, prev_fill_event)
+            if is_same:
+                found = True
+                break
 
-    return fill_value_changes, fill_added, fill_removed
+        if not found:
+            new_fill_events.append(current_fill_event)
+
+    return new_fill_events 
 
 def calculate_out_changes(
     prev_out_events: List[OutEventInfo],

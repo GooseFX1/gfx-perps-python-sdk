@@ -189,9 +189,8 @@ Checkout https://github.com/GooseFX1/gfx-perps-python-sdk/blob/dev/test_perp.py 
 The subscribe to asks feature needs a callback function which can process added_asks which tracks the new asks at new prices and size changes which tracks if the size of ask is changed
 
 ```python
-  def on_ask_change(added_asks, size_changes):
-    print("Added Asks:", added_asks)
-    print("Size Changesin Asks:", size_changes)
+  def on_ask_change(updated_asks):
+    print("Updated Asks:", updated_asks)
 
   perp = Perp(rpc_client, 'devnet', keyp)
   perp.init()
@@ -207,9 +206,8 @@ The subscribe to asks feature needs a callback function which can process added_
 The subscribe to bids feature needs a callback function which can process added_bids which tracks the new bids at new prices and size changes which tracks if the size of bid is changed
 
 ```python
-  def on_bid_change(added_bids, size_changes):
-    print("Added Bids:", added_bids)
-    print("Size Changesin Bids:", size_changes)
+  def on_bid_change(updated_bids):
+    print("Updated Bids:", updated_bids)
 
   perp = Perp(rpc_client, 'devnet', keyp)
   perp.init()

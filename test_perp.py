@@ -6,6 +6,7 @@ from solana.rpc.api import Client
 from solana.rpc import types
 from solana.transaction import Transaction
 from solders.keypair import Keypair
+from solders.pubkey import Pubkey
 from solders.instruction import Instruction as TransactionInstruction
 
 rpc_client = Client(
@@ -71,7 +72,6 @@ async def test_product_trades():
     trades = product.get_trades()
     assert len(trades) > 0
 
-
 @pytest.mark.skip(reason="This test will send transactions to the Solana network.")
 # @pytest.mark.asyncio
 async def test_trader_init():
@@ -95,11 +95,10 @@ async def test_create_trader_risk():
     
     assert response != None
 
-
 @pytest.mark.skip(reason="This test will send transactions to the Solana network.")
 # @pytest.mark.asyncio
 async def test_trader_deposit_funds():
-    perp = Perp(rpc_client, 'devnet',keyp)
+    perp = Perp(rpc_client, 'mainnet',keyp)
     perp.init()
     t = Trader(perp) 
     t.init()
@@ -113,7 +112,7 @@ async def test_trader_deposit_funds():
 @pytest.mark.skip(reason="This test will send transactions to the Solana network.")
 # @pytest.mark.asyncio
 async def test_trader_withdraw_funds():
-    perp = Perp(rpc_client, 'devnet',keyp)
+    perp = Perp(rpc_client, 'mainnet',keyp)
     perp.init()
     t = Trader(perp) 
     t.init()
@@ -136,9 +135,8 @@ async def test_trader_open_orders():
     assert orders['bids'] != None
     assert orders['asks'] != None
 
-
-# @pytest.mark.skip(reason="This test will send transactions to the Solana network.")
-@pytest.mark.asyncio
+@pytest.mark.skip(reason="This test will send transactions to the Solana network.")
+# @pytest.mark.asyncio
 async def test_trader_new_order_single():
     perp = Perp(rpc_client, 'mainnet',keyp)
     perp.init()
@@ -159,8 +157,8 @@ async def test_trader_new_order_single():
     print("\n status:", status)
     assert response != None
 
-# @pytest.mark.skip(reason="This test will send transactions to the Solana network.")
-@pytest.mark.asyncio
+@pytest.mark.skip(reason="This test will send transactions to the Solana network.")
+# @pytest.mark.asyncio
 async def test_trader_new_order_single_with_callback_id():
     perp = Perp(rpc_client, 'mainnet',keyp)
     perp.init()
@@ -232,14 +230,14 @@ async def test_trader_cancel_order_multiple():
 # @pytest.mark.asyncio
 @pytest.mark.skip(reason="This test will send transactions to the Solana network.")
 async def test_multi_new_orders():
-    perp = Perp(rpc_client, 'devnet', keyp)
+    perp = Perp(rpc_client, 'mainnet', keyp)
     perp.init()
     product = Product(perp)
     product.init_by_name('SOL-PERP')
     t = Trader(perp)
     t.init()
     ix1 = t.new_order_ix(product, Fractional.to_decimal(
-        13000), Fractional.to_decimal(56.1), 'bid', 'limit')
+        13000), Fractional.to_decimal(140), 'bid', 'limit')
     ix3 = t.new_order_ix(product, Fractional.to_decimal(
         11000), Fractional.to_decimal(32.41), 'ask', 'limit')
     ix2 = t.new_order_ix(product, Fractional.to_decimal(
@@ -271,4 +269,40 @@ async def test_get_order_details_():
     product.init_by_name('SOL-PERP')
     result = product.get_order_details_by_order_id(297897891053633909351725255941436)
     print("\n result: \n", result)
+    assert result != None
+
+# @pytest.mark.asyncio
+@pytest.mark.skip(reason="This test will send transactions to the Solana network.")
+async def test_get_all_trg_accounts():
+    perp = Perp(rpc_client, 'mainnet', keyp)
+    perp.init()
+    product = Product(perp)
+    product.init_by_name('SOL-PERP')
+    t = Trader(perp)
+    t.init()
+    print("t.trgKey: ", t.trgKey)
+    # cash_balance = t.get_cash_balance()
+    # print()
+    # print(f"cash_balance of trgKey: {t.trgKey} is {cash_balance}")
+    result = t.get_all_trg_accounts()
+    # do a for loop for result
+    print("result.len: ", len(result))
+    for trgkey in result:
+        cash_balance = t.get_cash_balance_for_trg(trgkey)
+        # print cash balance along with the trg key
+        print(f"cash_balance of trgKey: {trgkey} is {cash_balance}")
+        trader_positions = t.get_trader_positions_for_trg(trgkey)
+        for trader_position in trader_positions:
+            if trader_position['quantity'] != 0:
+                print(f"trader_positions of trgKey: {trgkey} is {trader_position}")
+         
+    print("pubkey: ", keyp.pubkey())
+    # ix = t.close_trader_risk_group_ix_for_trg(Pubkey.from_string("G7faixeJJzy8gMtkjLYShvNHftG6ZouvHLRNXPqPy6Vs"))
+    # ix = t.withdraw_funds_ix(Fractional.to_decimal(0.01))
+    ix = t.withdraw_funds_ix_for_trg(Fractional.to_decimal(0.01), Pubkey.from_string("A8zk4qVLG5fyjGL3vovtcJXMwGwRb1JTP4f8LpPfy3ur"))
+    response = send_solana_transaction(keyp, ix[0], ix[1])
+    print()
+    status = utils.get_transaction_status(connection=rpc_client, raw_sigs=[response])
+    print("\n status:", status)
+    
     assert result != None
