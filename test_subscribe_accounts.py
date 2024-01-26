@@ -20,8 +20,9 @@ rpc_client = Client(
     "https://omniscient-frequent-wish.solana-devnet.quiknode.pro/8b6a255ef55a6dbe95332ebe4f6d1545eae4d128/")
 keyp = Keypair.from_bytes([])
 
-def on_asks_change(ask_value_changes, ask_added, ask_removed):
-    if len(ask_value_changes) > 0 or len(ask_added) > 0 or len(ask_removed) > 0:
+def on_asks_change(updated_asks, new_asks):
+    # print ("updated_asks:", updated_asks)
+    if len(updated_asks) > 0:
         timestamp = datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
         folder_path = f'tests/events/{timestamp}'
         if not os.path.exists(folder_path):
@@ -29,15 +30,18 @@ def on_asks_change(ask_value_changes, ask_added, ask_removed):
         folder_path = os.path.join(folder_path, 'on_asks_change')
         if not os.path.exists(folder_path):
             os.makedirs(folder_path)
-        if len(ask_value_changes) > 0:
-            utils.write_json(ask_value_changes, f'{folder_path}/ask_value_changes.json')
-        if len(ask_added) > 0:
-            utils.write_json(ask_added, f'{folder_path}/ask_added.json')
-        if len(ask_removed) > 0:
-            utils.write_json(ask_removed, f'{folder_path}/ask_removed.json')
+        updated_asks_json = []
+        for updated_ask in updated_asks:
+            updated_asks_json.append(updated_ask.to_json())
+        new_asks_json = []
+        for new_ask in new_asks:
+            new_asks_json.append(new_ask.to_json())
+        utils.write_json(updated_asks_json, f'{folder_path}/updated_asks.json')
+        utils.write_json(new_asks_json, f'{folder_path}/new_asks.json')
 
-def on_bids_change(bid_value_changes, bid_added, bid_removed):
-    if len(bid_value_changes) > 0 or len(bid_added) > 0 or len(bid_removed) > 0:
+def on_bids_change(updated_bids, new_bids):
+    # print ("updated_bids:", updated_bids)
+    if len(updated_bids) > 0:
         timestamp = datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
         folder_path = f'tests/events/{timestamp}'
         if not os.path.exists(folder_path):
@@ -45,28 +49,29 @@ def on_bids_change(bid_value_changes, bid_added, bid_removed):
         folder_path = os.path.join(folder_path, 'on_bids_change')
         if not os.path.exists(folder_path):
             os.makedirs(folder_path)
-        if len(bid_value_changes) > 0:
-            utils.write_json(bid_value_changes, f'{folder_path}/bid_value_changes.json')
-        if len(bid_added) > 0:
-            utils.write_json(bid_added, f'{folder_path}/bid_added.json')
-        if len(bid_removed) > 0:
-            utils.write_json(bid_removed, f'{folder_path}/bid_removed.json')
+        updated_bids_json = []
+        for updated_bid in updated_bids:
+            updated_bids_json.append(updated_bid.to_json())
+        new_bids_json = []
+        for new_bid in new_bids:
+            new_bids_json.append(new_bid.to_json())
+        utils.write_json(updated_bids_json, f'{folder_path}/updated_bids.json')
+        utils.write_json(new_bids_json, f'{folder_path}/new_bids.json')
 
-def on_fills_change(fill_value_changes, fill_added, fill_removed):
-    if len(fill_value_changes) > 0 or len(fill_added) > 0 or len(fill_removed) > 0:
+def on_positions_change(new_fill_events):
+    # print("new_fill_events:", new_fill_events)
+    if len(new_fill_events) > 0:
         timestamp = datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
         folder_path = f'tests/events/{timestamp}'
         if not os.path.exists(folder_path):
             os.makedirs(folder_path)
-        folder_path = os.path.join(folder_path, 'on_fills_change')
+        folder_path = os.path.join(folder_path, 'on_positions_change')
         if not os.path.exists(folder_path):
             os.makedirs(folder_path)
-        if len(fill_value_changes) > 0:
-            utils.write_json(fill_value_changes, f'{folder_path}/fill_value_changes.json')
-        if len(fill_added) > 0:
-            utils.write_json(fill_added, f'{folder_path}/fill_added.json')
-        if len(fill_removed) > 0:
-            utils.write_json(fill_removed, f'{folder_path}/fill_removed.json')
+        new_fill_events_json = []
+        for new_fill_event in new_fill_events:
+            new_fill_events_json.append(new_fill_event.to_json())
+        utils.write_json(new_fill_events_json, f'{folder_path}/new_fill_events.json')
 
 def on_outs_change(out_value_changes, out_added, out_removed):
     if len(out_value_changes) > 0 or len(out_added) > 0 or len(out_removed) > 0:
@@ -136,7 +141,7 @@ def on_cash_balance_change(cash_balance_changes):
         folder_path = os.path.join(folder_path, 'on_cash_balance_change')
         if not os.path.exists(folder_path):
             os.makedirs(folder_path)
-        perp = Perp(rpc_client, 'devnet', keyp)
+        perp = Perp(rpc_client, 'mainnet', keyp)
         perp.init()
         product = Product(perp)
         product.init_by_name('SOL-PERP')
@@ -170,7 +175,7 @@ def on_open_orders_change(open_orders_changes):
         if not os.path.exists(folder_path):
             os.makedirs(folder_path)
         utils.write_json(open_orders_changes, f'{folder_path}/open_orders_changes.json')
-        perp = Perp(rpc_client, 'devnet', keyp)
+        perp = Perp(rpc_client, 'mainnet', keyp)
         perp.init()
         product = Product(perp)
         product.init_by_name('SOL-PERP')
@@ -197,7 +202,7 @@ async def main():
     if not os.path.exists(folder_path):
         os.makedirs(folder_path)
     
-    perp = Perp(rpc_client, 'devnet', keyp)
+    perp = Perp(rpc_client, 'mainnet', keyp)
     perp.init()
     product = Product(perp)
     product.init_by_name('SOL-PERP')
@@ -217,27 +222,35 @@ async def main():
     # utils.write_json(perp.marketProductGroup.to_json(), f'{folder_path}/prev_mpg.json')
     bids_sub = asyncio.create_task(product.subscribe_to_bids(on_bids_change))
     asks_sub = asyncio.create_task(product.subscribe_to_asks(on_asks_change))
-    fills_sub = asyncio.create_task(t.subscribe_trader_positions(product, on_fills_change, "fills"))
-    outs_sub = asyncio.create_task(t.subscribe_trader_positions(product, on_outs_change, "outs"))
+    positions_sub = asyncio.create_task(t.subscribe_trader_positions(product, on_positions_change))
     act_sub = asyncio.create_task(t.subscribe_to_trader_risk_group(on_active_products_change, "active_products"))
     deposit_sub = asyncio.create_task(t.subscribe_to_trader_risk_group(on_total_deposited_change, "total_deposited"))
     withdraw_sub = asyncio.create_task(t.subscribe_to_trader_risk_group(on_total_withdrawn_change, "total_withdrawn"))
     cash_bal_sub = asyncio.create_task(t.subscribe_to_trader_risk_group(on_cash_balance_change, "cash_balance"))
-    positions_sub = asyncio.create_task(t.subscribe_to_trader_risk_group(on_trader_positions_change, "trader_positions"))
+    trader_positions_sub = asyncio.create_task(t.subscribe_to_trader_risk_group(on_trader_positions_change, "trader_positions"))
     open_orders_sub = asyncio.create_task(t.subscribe_to_trader_risk_group(on_open_orders_change, "open_orders"))
     # token_bal_sub = asyncio.create_task(t.subscribe_to_token_balance_change(on_trader_balance_change))
-    # orderDetails = product.get_order_details_by_order_id(l3ob['asks'][0].orderId)
-    # print("orderDetails:", orderDetails)
+    orderDetails = product.get_order_details_by_order_id(l3ob['asks'][0].orderId)
+    print("orderDetails:", orderDetails)
+    cash_balance = t.get_cash_balance()
+    print("cash_balance:", cash_balance)
+    deposited_amount = t.get_deposited_amount()
+    print("deposited_amount:", deposited_amount)
+    withdrawn_amount = t.get_withdrawn_amount()
+    print("withdrawn_amount:", withdrawn_amount)
+    trader_positions = t.get_trader_positions_by_product_index(0)
+    print("trader_positions_by_index:", trader_positions)
+    trader_positions = t.get_trader_positions_by_product_name('SOL-PERP')
+    print("trader_positions_by_name:", trader_positions)
     print("starting tasks...")
     await bids_sub
     await asks_sub
-    await fills_sub
-    await outs_sub
+    await positions_sub
     await act_sub
     await deposit_sub
     await withdraw_sub
     await cash_bal_sub
-    await positions_sub
+    await trader_positions_sub
     await open_orders_sub
 
 if __name__ == "__main__":

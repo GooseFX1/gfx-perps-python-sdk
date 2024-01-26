@@ -8,6 +8,8 @@ import gfx_perp_sdk.utils as utils
 from .constants import perps_constants
 from .perp import Perp
 from .agnostic import Slab, EventQueue
+from gfx_perp_sdk.agnostic.EventQueue import FillEventInfo
+
 
 import requests
 import json
@@ -23,6 +25,7 @@ class Product(Perp):
     marketSigner: PublicKey
     tick_size: int
     decimals: int
+    events: [FillEventInfo]
 
     def __init__(self, perp: Perp):
         super(Product, self).__init__(perp.connection, 
@@ -49,6 +52,7 @@ class Product(Perp):
             self.PRODUCT_ID,
             self.ADDRESSES['DEX_ID']
         )
+        self.events = []
 
     def init_by_name(self, name: str):
         selectedProduct = None
@@ -71,6 +75,7 @@ class Product(Perp):
             self.PRODUCT_ID,
             self.ADDRESSES['DEX_ID']
         )
+        self.events = []
 
     def get_orderbook_L2(self):
         try:
@@ -179,12 +184,14 @@ class Product(Perp):
                     if msg:
                         r1 = msg[0].result.value.data
                         bidDeserialized = Slab.deserialize(r1, 40)
-                        newBids = utils.process_deserialized_slab_data(bidDeserialized, None)
-                        newBidsProcessed = utils.processL3Ob(newBids["bids"], None, self.tick_size, self.decimals)["bids"]
-                        bid_ask_value_changes, bid_ask_added, bid_ask_removed = utils.calculate_bid_ask_changes(prevBidsProcessed, newBidsProcessed)
-                        prevBidsProcessed = newBidsProcessed
-                        prevBids = newBids
-                        on_bids_change(bid_ask_value_changes, bid_ask_added, bid_ask_removed)
+                        currentBids = utils.process_deserialized_slab_data(bidDeserialized, None)
+                        currentBidsProcessed = utils.processL3Ob(currentBids["bids"], None, self.tick_size, self.decimals)["bids"]
+                        new_bids = utils.get_slab_changes(prevBidsProcessed, currentBidsProcessed)
+                        on_bids_change(currentBidsProcessed, new_bids)
+                        # bid_ask_value_changes, bid_ask_added, bid_ask_removed = utils.calculate_bid_ask_changes(prevBidsProcessed, currentBidsProcessed)
+                        prevBidsProcessed = currentBidsProcessed
+                        # prevBids = currentBids
+                        # on_bids_change(bid_ask_value_changes, bid_ask_added, bid_ask_removed)
                 except Exception:
                     raise ModuleNotFoundError(
                         "unable to process the bids")
@@ -210,17 +217,20 @@ class Product(Perp):
                     if msg:
                         r1 = msg[0].result.value.data
                         askDeserialized = Slab.deserialize(r1, 40)
-                        newAsks = utils.process_deserialized_slab_data(None, askDeserialized)
-                        newAsksProcessed = utils.processL3Ob(None, newAsks["asks"], self.tick_size, self.decimals)["asks"]
-                        bid_ask_value_changes, bid_ask_added, bid_ask_removed = utils.calculate_bid_ask_changes(prevAsksProcessed, newAsksProcessed)
-                        prevAsksProcessed = newAsksProcessed
-                        prevAsks = newAsks
-                        on_asks_change(bid_ask_value_changes, bid_ask_added, bid_ask_removed)
+                        currentAsks = utils.process_deserialized_slab_data(None, askDeserialized)
+                        currentAsksProcessed = utils.processL3Ob(None, currentAsks["asks"], self.tick_size, self.decimals)["asks"]
+                        new_asks = utils.get_slab_changes(prevAsksProcessed, currentAsksProcessed)
+                        on_asks_change(currentAsksProcessed, new_asks)
+                        # bid_ask_value_changes, bid_ask_added, bid_ask_removed = utils.calculate_bid_ask_changes(prevAsksProcessed, currentAsksProcessed)
+                        prevAsksProcessed = currentAsksProcessed
+                        # prevAsks = currentAsks
+                        # on_asks_change(bid_ask_value_changes, bid_ask_added, bid_ask_removed)
                 except Exception:
                     raise ModuleNotFoundError(
                         "unable to process the asks")
 
-    async def subscribe_to_trades(self, trgKey:PublicKey, on_fill_out_change, event_type: str):
+    # async def subscribe_to_trades(self, trgKey:PublicKey, on_fill_out_change, event_type: str):
+    async def subscribe_to_trades(self, trgKey:PublicKey, on_positions_change):
         wss = self.connection._provider.endpoint_uri.replace("https", "wss")
         async with connect(wss) as solana_webscoket:
             solana_webscoket: SolanaWsClientProtocol
@@ -233,7 +243,7 @@ class Product(Perp):
                 pubkey=self.EVENT_QUEUE, commitment="processed", encoding="base64")
             r1 = eventData.value.data
             eventQueueDeserialized = EventQueue.deserialize(r1)
-            (prevFillEvents, prevOutEvents) = eventQueueDeserialized.get_fill_out_events()
+            # (prevFillEvents, prevOutEvents) = eventQueueDeserialized.get_fill_out_events()
             # prevL3ob = self.get_orderbook_L3()
             while True:
                 try:
@@ -244,15 +254,21 @@ class Product(Perp):
                         (newFillEvents, newOutEvents) = eventQueueDeserialized.get_fill_out_events()
                         
                         # newL3ob = self.get_orderbook_L3()
-                        if event_type == "fills":
-                            fill_value_changes, fill_added, fill_removed = utils.calculate_fill_changes(prevFillEvents, newFillEvents, self.decimals, self.tick_size)
-                            on_fill_out_change(fill_value_changes, fill_added, fill_removed)
-                            prevFillEvents = newFillEvents
+                        # if event_type == "fills":
+                        new_fill_events_json = []
+                        for new_fill_event in newFillEvents:
+                            new_fill_events_json.append(new_fill_event.to_json())
 
-                        elif event_type == "outs":
-                            out_value_changes, out_added, out_removed = utils.calculate_out_changes(prevOutEvents, newOutEvents, self.decimals, self.tick_size)
-                            on_fill_out_change(out_value_changes, out_added, out_removed)
-                            prevOutEvents = newOutEvents
+                        new_fill_events = utils.calculate_fill_changes(self.events, newFillEvents)
+                        self.events.extend(new_fill_events)
+                        if len(new_fill_events):
+                            print(new_fill_events)
+                        on_positions_change(new_fill_events)
+                        
+                        # elif event_type == "outs":
+                        #     out_value_changes, out_added, out_removed = utils.calculate_out_changes(prevOutEvents, newOutEvents, self.decimals, self.tick_size)
+                        #     on_fill_out_change(out_value_changes, out_added, out_removed)
+                        #     prevOutEvents = newOutEvents
                         # bid_value_changes, bid_added, bid_removed = utils.calculate_bid_ask_changes(prevL3ob['bids'], newL3ob['bids'])
                         # ask_value_changes, ask_added, ask_removed = utils.calculate_bid_ask_changes(prevL3ob['asks'], newL3ob['asks'])
                         # prevL3ob = newL3ob
