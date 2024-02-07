@@ -16,8 +16,8 @@ from gfx_perp_sdk.trader import Trader
 from gfx_perp_sdk.types.market_product_group import MarketProductGroup
 from gfx_perp_sdk.types.trader_risk_group import TraderRiskGroup
 
-rpc_client = Client(
-    "https://omniscient-frequent-wish.solana-devnet.quiknode.pro/8b6a255ef55a6dbe95332ebe4f6d1545eae4d128/")
+#recommend using dedicated RPC
+rpc_client = Client("https://api.mainnet-beta.solana.com")
 keyp = Keypair.from_bytes([])
 
 def on_asks_change(updated_asks, new_asks):

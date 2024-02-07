@@ -18,14 +18,15 @@ def send_solana_transaction(client: Client, wallet: Keypair, ixs: [TransactionIn
         transaction, *signers, opts=types.TxOpts(skip_preflight=True))
     return result.value
 
-url = 'https://api.devnet.solana.com'
+#recommend using dedicated RPC
+url = 'https://api.mainnet-beta.solana.com'
 rpc_client = Client(url)
 
 key_pair = [] # 64 int values
 wallet = Keypair.from_bytes(key_pair)
 
 # perp
-perp = Perp(rpc_client, 'devnet', wallet)
+perp = Perp(rpc_client, 'mainnet', wallet)
 perp.init()
 
 # trader create account
