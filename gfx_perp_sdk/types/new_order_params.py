@@ -5,6 +5,7 @@ from .base import (
     SelfTradeBehavior,
     Side,
 )
+from typing import Optional
 from podite import (
     U32,
     U64,
@@ -23,7 +24,7 @@ class NewOrderParams:
     self_trade_behavior: SelfTradeBehavior
     match_limit: U64
     limit_price: Fractional
-    callback_id: U32 = 0
+    callback_id: Optional[U32] = 0
     # LOCK-END
 
     @classmethod

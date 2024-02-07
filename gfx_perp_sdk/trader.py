@@ -207,7 +207,7 @@ class Trader(Perp):
     def new_order_ix(self, product: Product, size: Fractional,
                      price: Fractional, side: str, order_type: str, 
                      self_trade_behaviour: Optional[base.SelfTradeBehavior] = base.SelfTradeBehavior.DECREMENT_TAKE,  
-                     callback_id: U32 = 0):
+                     callback_id: Optional[U32] = 0):
         if side == 'bid':
             sideParam = base.Side.BID
         elif side == 'ask':
@@ -215,7 +215,6 @@ class Trader(Perp):
         else:
             raise KeyError("Side can only be bid or ask")
 
-        self_trade_behaviour = base.SelfTradeBehavior.DECREMENT_TAKE
         match_limit = 1000
         if order_type == "limit":
             order_type_param = OrderType.LIMIT
@@ -236,7 +235,8 @@ class Trader(Perp):
                                    order_type_param,
                                    self_trade_behaviour,
                                    match_limit,
-                                   price
+                                   price,
+                                   callback_id
                                    )
         ix1 = new_order(
             self.wallet.pubkey(),
