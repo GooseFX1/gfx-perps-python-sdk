@@ -40,6 +40,6 @@ print("address:", str(wallet.pubkey()))
 t.init()
 ix = t.deposit_funds_ix(Fractional.to_decimal(100))
 response = send_solana_transaction(rpc_client, wallet, ix[0], ix[1])
-status = utils.get_transaction_status(connection=rpc_client, raw_sigs=[response.__str__()])
+status = utils.get_transaction_status(connection=rpc_client, raw_sigs=[response])
 print("status:", status)
     
