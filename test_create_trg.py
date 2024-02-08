@@ -8,16 +8,6 @@ from gfx_perp_sdk.types.fractional import Fractional
 from solders.instruction import Instruction as TransactionInstruction
 from solana.transaction import Transaction
 
-def send_solana_transaction(client: Client, wallet: Keypair, ixs: [TransactionInstruction], signers):
-    blockhash = client.get_latest_blockhash(commitment="finalized")
-    transaction = Transaction(recent_blockhash=blockhash.value.blockhash,
-                              fee_payer=wallet.pubkey())
-    for ix in ixs:
-        transaction.add(ix)
-    result = client.send_transaction(
-        transaction, *signers, opts=types.TxOpts(skip_preflight=True))
-    return result.value
-
 #recommend using dedicated RPC
 url = 'https://api.mainnet-beta.solana.com'
 rpc_client = Client(url)
@@ -38,8 +28,7 @@ t = Trader(perp)
 print()
 print("address:", str(wallet.pubkey()))
 t.init()
-ix = t.deposit_funds_ix(Fractional.to_decimal(100))
-response = send_solana_transaction(rpc_client, wallet, ix[0], ix[1])
-status = utils.get_transaction_status(connection=rpc_client, raw_sigs=[response])
-print("status:", status)
+ix = t.deposit_funds_ix(Fractional.to_decimal(1000))
+response = utils.send_solana_transaction(rpc_client, wallet, ix[0], ix[1])
+print("response:", response)
     
