@@ -126,7 +126,7 @@ def withdraw_funds(
         market_product_group = to_account_meta(
             market_product_group,
             is_signer=False,
-            is_writable=False,
+            is_writable=True,
         )
     if isinstance(market_product_group_vault, (str, PublicKey)):
         market_product_group_vault = to_account_meta(
