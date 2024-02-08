@@ -3,11 +3,8 @@ import pytest
 from gfx_perp_sdk import (Perp, Product, Trader, utils)
 from gfx_perp_sdk.types import Fractional, base
 from solana.rpc.api import Client
-from solana.rpc import types
-from solana.transaction import Transaction
-from solders.keypair import Keypair
 from solders.pubkey import Pubkey
-from solders.instruction import Instruction as TransactionInstruction
+from solders.keypair import Keypair
 
 #recommend using dedicated RPC
 rpc_client = Client("https://api.mainnet-beta.solana.com")
@@ -15,17 +12,6 @@ rpc_client = Client("https://api.mainnet-beta.solana.com")
 keyp = Keypair.from_bytes([])
 
 pytest_plugins = ('pytest_asyncio',)
-
-
-def send_solana_transaction(wallet: Keypair, ixs: [TransactionInstruction], signers):
-    blockhash = rpc_client.get_latest_blockhash(commitment="finalized")
-    transaction = Transaction(recent_blockhash=blockhash.value.blockhash,
-                              fee_payer=wallet.pubkey())
-    for ix in ixs:
-        transaction.add(ix)
-    result = rpc_client.send_transaction(
-        transaction, *signers, opts=types.TxOpts(skip_preflight=True))
-    return result.value
 
 
 @pytest.mark.skip(reason="This test will send transactions to the Solana network.")
@@ -90,7 +76,7 @@ async def test_create_trader_risk():
     perp.init()
     t = Trader(perp)
     ix = t.create_trader_account_ixs()
-    response = send_solana_transaction(keyp, ix[0], ix[1])
+    response = utils.send_solana_transaction(rpc_client, keyp, ix[0], ix[1])
     print("\n response:", response)
     assert response != None
 
@@ -102,18 +88,19 @@ async def test_trader_deposit_funds():
     t = Trader(perp) 
     t.init()
     ix = t.deposit_funds_ix(Fractional.to_decimal(100))
-    response = send_solana_transaction(keyp, ix[0], ix[1])
+    response = utils.send_solana_transaction(rpc_client, keyp, ix[0], ix[1])
     print("\n response:", response)
     assert response != None
 
 @pytest.mark.skip(reason="This test will send transactions to the Solana network.")
+# @pytest.mark.asyncio
 async def test_trader_withdraw_funds():
     perp = Perp(rpc_client, 'mainnet',keyp)
     perp.init()
     t = Trader(perp) 
     t.init()
     ix = t.withdraw_funds_ix(Fractional.to_decimal(100))
-    response = send_solana_transaction(keyp, ix[0], ix[1])
+    response = utils.send_solana_transaction(rpc_client, keyp, ix[0], ix[1])
     print(response)
     assert response != None
     status = utils.get_transaction_status(connection=rpc_client, raw_sigs=[response])
@@ -143,7 +130,7 @@ async def test_trader_new_order_single():
     t = Trader(perp) 
     t.init()
     ix = t.new_order_ix(product, Fractional.to_decimal(50000), Fractional.to_decimal(35), 'ask', 'limit')
-    response = send_solana_transaction(keyp, ix[0], ix[1])
+    response = utils.send_solana_transaction(rpc_client, keyp, ix[0], ix[1])
     print("response: ", response)
     status = utils.get_transaction_status(connection=rpc_client, raw_sigs=[response])
     print("\n status:", status)
@@ -167,7 +154,7 @@ async def test_trader_new_order_single_with_callback_id():
         base.SelfTradeBehavior.ABORT_TRANSACTION,
         324567
         )
-    response = send_solana_transaction(keyp, ix[0], ix[1])
+    response = utils.send_solana_transaction(rpc_client, keyp, ix[0], ix[1])
     print()
     status = utils.get_transaction_status(connection=rpc_client, raw_sigs=[response])
     print("\n status:", status)
@@ -192,7 +179,7 @@ async def test_trader_new_order_multiple():
         base.SelfTradeBehavior.CANCEL_PROVIDE,
         23456
         )
-    response = send_solana_transaction(keyp, ix1[0] + ix2[0], ix1[1])
+    response = utils.send_solana_transaction(rpc_client, keyp, ix1[0] + ix2[0], ix1[1])
     print(response)
     status = utils.get_transaction_status(connection=rpc_client, raw_sigs=[response])
     print("\n status:", status)
@@ -208,7 +195,7 @@ async def test_trader_cancel_order_single():
     t = Trader(perp) 
     t.init()
     ix1 = t.cancel_order_ix(product, 213123757163389514870706933277370) # Get this order id from t.get_open_orders()
-    response = send_solana_transaction(keyp, ix1[0], ix1[1])
+    response = utils.send_solana_transaction(rpc_client, keyp, ix1[0], ix1[1])
     print(response)
     assert response != None
 
@@ -225,7 +212,7 @@ async def test_trader_cancel_order_multiple():
     ix1 = t.cancel_order_ix(product, 7922816251444880503428077057745)
     ix2 = t.cancel_order_ix(product, 7922816251444880503428077057928)
     ix3 = t.cancel_order_ix(product, 277298568799943628321477508200132)
-    response = send_solana_transaction(keyp, ix1[0] + ix2[0] + ix3[0] , ix1[1])
+    response = utils.send_solana_transaction(rpc_client, keyp, ix1[0] + ix2[0] + ix3[0] , ix1[1])
     print(response)
     status = utils.get_transaction_status(connection=rpc_client, raw_sigs=[response])
     print("\n status:", status)
@@ -251,10 +238,10 @@ async def test_multi_new_orders():
     #     10000), Fractional.to_decimal(32.4), 'ask', 'limit')
     # ix2 = t.new_order_ix(product, Fractional.to_decimal(
     #     210000), Fractional.to_decimal(32.44), 'ask', 'limit')
-    response = send_solana_transaction(keyp, ix1[0] + ix2[0] + ix3[0], ix1[1])
-    # response = send_solana_transaction(keyp,ix3[0], ix3[1])
-    # response = send_solana_transaction(keyp, ix1[0], ix1[1])
-    # response = send_solana_transaction(keyp, ix2[0], ix2[1])
+    response = utils.send_solana_transaction(rpc_client, keyp, ix1[0] + ix2[0] + ix3[0], ix1[1])
+    # response = utils.send_solana_transaction(rpc_client, keyp,ix3[0], ix3[1])
+    # response = utils.send_solana_transaction(rpc_client, keyp, ix1[0], ix1[1])
+    # response = utils.send_solana_transaction(rpc_client, keyp, ix2[0], ix2[1])
     print("\n response: \n", response)
     assert response != None
     orderbook = product.get_orderbook_L2()
@@ -305,7 +292,7 @@ async def test_get_all_trg_accounts():
     # ix = t.close_trader_risk_group_ix_for_trg(Pubkey.from_string("G7faixeJJzy8gMtkjLYShvNHftG6ZouvHLRNXPqPy6Vs"))
     # ix = t.withdraw_funds_ix(Fractional.to_decimal(0.01))
     ix = t.withdraw_funds_ix_for_trg(Fractional.to_decimal(0.01), Pubkey.from_string("A8zk4qVLG5fyjGL3vovtcJXMwGwRb1JTP4f8LpPfy3ur"))
-    response = send_solana_transaction(keyp, ix[0], ix[1])
+    response = utils.send_solana_transaction(rpc_client, keyp, ix[0], ix[1])
     print()
     status = utils.get_transaction_status(connection=rpc_client, raw_sigs=[response])
     print("\n status:", status)

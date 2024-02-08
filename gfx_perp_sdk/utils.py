@@ -1,5 +1,9 @@
 from solders.pubkey import Pubkey as PublicKey
 from solders.signature import Signature
+from solders.instruction import Instruction as TransactionInstruction
+from solders.keypair import Keypair
+from solana.transaction import Transaction
+from solana.rpc import types
 from solana.rpc.api import Client
 from solana.rpc.types import MemcmpOpts
 from solana.transaction import AccountMeta
@@ -735,6 +739,18 @@ def create_token_account_info(bytes_data):
         rent_exempt_reserve,
         close_authority,
     )
+
+def send_solana_transaction(rpc_client: Client, wallet: Keypair, ixs: [TransactionInstruction], signers):
+    blockhash = rpc_client.get_latest_blockhash(commitment="finalized")
+    transaction = Transaction(recent_blockhash=blockhash.value.blockhash,
+                              fee_payer=wallet.pubkey())
+    for ix in ixs:
+        transaction.add(ix)
+    # result = rpc_client.send_transaction(
+    #     transaction, *signers, opts=types.TxOpts(skip_preflight=True))
+    result = rpc_client.send_transaction(transaction, *signers, opts=types.TxOpts(
+        skip_preflight=False, preflight_commitment="confirmed"))
+    return result.value
 
 def get_transaction_status(connection: Client, raw_sigs: List[Signature]):
     sig_status_mapping = {}
