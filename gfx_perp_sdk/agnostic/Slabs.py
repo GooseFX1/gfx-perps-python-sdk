@@ -2,7 +2,7 @@ from enum import Enum
 from typing import List, Tuple, Generator, Union
 from dataclasses import dataclass
 import struct
-import numpy as np
+from solders.pubkey import Pubkey as PublicKey
 
 def combine_u64_to_u128(a: int, b: int) -> int:
     # Shift a to the higher 64 bits of u128
@@ -17,6 +17,22 @@ def bitwise_not_32_bits(number: int) -> int:
     # Perform bitwise NOT operation
     result = ~number & mask_32_bits
     return result
+
+@dataclass
+class CallbackInfo:
+    userAccount: PublicKey
+    openOrderIdx: int
+    callbackId: int
+    LEN: int = 40
+
+    @staticmethod
+    def deserialize(data: bytes) -> 'CallbackInfo':
+        user_account_bytes = data[:32]
+        open_order_idx = struct.unpack('<L', data[32:36])[0]
+        callback_id = struct.unpack('<L', data[36:40])[0]
+        user_account = PublicKey(user_account_bytes)
+        return CallbackInfo(user_account, open_order_idx, callback_id)
+
 
 @dataclass
 class Price:
@@ -133,7 +149,7 @@ class Slab:
         key = combine_u64_to_u128(keyUp, keyDown)
         return InnerNode(prefixLen, key, [child1, child2])
 
-    def items(self, descending=False) -> Generator[Tuple[LeafNode, bytes], None, None]:
+    def items(self, descending=False) -> Generator[Tuple[LeafNode, CallbackInfo], None, None]:
         if self.header.leafCount == 0:
             return
 
@@ -149,7 +165,7 @@ class Slab:
                 else:
                     stack.extend([node.children[1], node.children[0]])
 
-    def getMinMaxNodes(self, maxNbOrders: int, max: bool) -> List[Tuple[LeafNode, bytes]]:
+    def getMinMaxNodes(self, maxNbOrders: int, max: bool) -> List[Tuple[LeafNode, CallbackInfo]]:
         minMaxOrders = []
         for leafNode, callbackInfo in self.items(max):
             if len(minMaxOrders) == maxNbOrders:
@@ -190,9 +206,10 @@ class Slab:
           result.append({'size': size, 'price': price})
         return result
 
-    def getCallBackInfo(self, nodeHandle: int) -> bytes:
+    def getCallBackInfo(self, nodeHandle: int) -> CallbackInfo:
         if not Slab.isLeaf(nodeHandle):
             return b""
         start = nodeHandle * self.callBackInfoLen
         end = (nodeHandle + 1) * self.callBackInfoLen
-        return self.callbackInfoBuffer[start:end]
+        callback_info = CallbackInfo.deserialize(self.callbackInfoBuffer[start:end])
+        return callback_info

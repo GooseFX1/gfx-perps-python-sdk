@@ -34,6 +34,7 @@ class L3OrderbookInfo:
     user: str
     orderId: int
     orderSide: str
+    callBackId: int
 
     def to_dict(self):
         return asdict(self)
@@ -44,25 +45,28 @@ class L3OrderbookInfo:
             'price': self.price,
             'user': self.user,
             'orderId': self.orderId,
-            'orderSide': self.orderSide
+            'orderSide': self.orderSide,
+            'callBackId': self.callBackId,
         }
 
 @dataclass
 class SlabOrderInfo:
     """Class representing Slab info received from Asks and Bids accounts."""
-    price: int
     size: int
+    price: int
     user: PublicKey
     orderId: int
-    OrderSide: str
+    orderSide: str
+    callBackId: int
 
     def to_json(self):
         return {
-            'price': self.price,
             'size': self.size,
+            'price': self.price,
             'user': self.user.__str__(),
             'orderId': self.orderId,
-            'orderSide': self.OrderSide
+            'orderSide': self.orderSide,
+            'callbackId': self.callBackId
         }
 
 def get_market_signer(product: PublicKey, DEX_ID: PublicKey) -> PublicKey:
@@ -98,11 +102,12 @@ def processL3Ob(bidsParam: List[SlabOrderInfo], asksParams: List[SlabOrderInfo],
         for bids in bidsParam:
             result["bids"].append(
                 L3OrderbookInfo(
-                    size=bids['size'] / (10 ** (decimals + 5)),
-                    price=(bids['price'] >> 32) / tickSize,
-                    user=str(bids['user']),
-                    orderId=bids['orderId'],
-                    orderSide=bids['orderSide']
+                    size=bids.size / (10 ** (decimals + 5)),
+                    price=(bids.price >> 32) / tickSize,
+                    user=str(bids.user),
+                    orderId=bids.orderId,
+                    orderSide=bids.orderSide,
+                    callBackId=bids.callBackId
                 )
             )
     result["asks"]: List[L3OrderbookInfo] = []
@@ -110,11 +115,12 @@ def processL3Ob(bidsParam: List[SlabOrderInfo], asksParams: List[SlabOrderInfo],
         for asks in asksParams:
             result["asks"].append(
                 L3OrderbookInfo(
-                    size=asks['size'] / (10 ** (decimals + 5)),
-                    price=(asks['price'] >> 32) / tickSize,
-                    user=str(asks['user']),
-                    orderId=asks['orderId'],
-                    orderSide=asks['orderSide']
+                    size=asks.size / (10 ** (decimals + 5)),
+                    price=(asks.price >> 32) / tickSize,
+                    user=str(asks.user),
+                    orderId=asks.orderId,
+                    orderSide=asks.orderSide,
+                    callBackId=asks.callBackId
                 )
             )
     return result
@@ -126,29 +132,37 @@ def process_deserialized_slab_data(bidDeserialized: Slab, askDeserialized: Slab)
         for bids in bidDeserialized.items():
             price = bids[0].getPrice()
             size = bids[0].baseQuantity
-            user = PublicKey(bids[1][0:32])
+            user = bids[1].userAccount
+            callBackId = bids[1].callbackId
             orderId = bids[0].key
-            result['bids'].append({
-                "price": price,
-                "size": size,
-                "user": user,
-                "orderId": orderId,
-                "orderSide": OrderSide.BID.value
-            })
+            result['bids'].append(
+                SlabOrderInfo(
+                    size=size,
+                    price=price,
+                    user=user,
+                    orderId=orderId,
+                    orderSide=OrderSide.BID.value,
+                    callBackId=callBackId
+                )
+            )
     result["asks"]: List[SlabOrderInfo] = []
     if askDeserialized is not None:
         for asks in askDeserialized.items():
             price = asks[0].getPrice()
             size = asks[0].baseQuantity
-            user = PublicKey(asks[1][0:32])
+            user = asks[1].userAccount
+            callBackId = asks[1].callbackId
             orderId = asks[0].key
-            result['asks'].append({
-                "price": price,
-                "size": size,
-                "user": user,
-                "orderId": orderId,
-                "orderSide": OrderSide.ASK.value
-            })
+            result['asks'].append(
+                SlabOrderInfo(
+                    size=size,
+                    price=price,
+                    user=user,
+                    orderId=orderId,
+                    orderSide=OrderSide.ASK.value,
+                    callBackId=callBackId
+                )
+            )
     return result
     
 def getTraderRiskGroup(wallet: PublicKey, connection: Client, DEX_ID: PublicKey, MPG_ID: PublicKey):

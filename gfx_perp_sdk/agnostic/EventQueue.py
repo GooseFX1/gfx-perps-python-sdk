@@ -2,23 +2,8 @@ from dataclasses import dataclass
 from typing import List, Tuple
 import struct
 
-from solders.pubkey import Pubkey as PublicKey
-from gfx_perp_sdk.agnostic.Slabs import combine_u64_to_u128
+from gfx_perp_sdk.agnostic.Slabs import combine_u64_to_u128, CallbackInfo
 
-@dataclass
-class CallbackInfo:
-    userAccount: PublicKey
-    openOrderIdx: int
-    callbackId: int
-    LEN: int = 40
-
-    @staticmethod
-    def deserialize(data: bytes) -> 'CallbackInfo':
-        user_account_bytes = data[:32]
-        open_order_idx = struct.unpack('<L', data[32:36])[0]
-        callback_id = struct.unpack('<L', data[36:40])[0]
-        user_account = PublicKey(user_account_bytes)
-        return CallbackInfo(user_account, open_order_idx, callback_id)
 
 @dataclass
 class FillEvent:
