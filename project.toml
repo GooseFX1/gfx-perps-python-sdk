@@ -2,7 +2,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 [project]
 name = "gfx_perp_sdk"
-version = "0.0.9"
+version = "0.0.13"
 authors = [
   { name="Shashank Shekhar", email="shashank@goosefx.io" },
 ]
