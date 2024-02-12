@@ -24,7 +24,7 @@ ADDRESSES: Network = {
                 "ASKS": PublicKey.from_string("FPTSdA4vPQRz4KyjKi5YYdNNq9EbKDSgKMNyadrbVhG8"),
                 "EVENT_QUEUE": PublicKey.from_string("2Kv94KZTX8yePkdNZT1zXpzDaTpLYLpeiv7Gp8vLA6kL"),
                 "tick_size": 100,
-                "decimals": 5
+                "decimals": 7
             }
         ],
         "VAULT_MINT": PublicKey.from_string("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"),

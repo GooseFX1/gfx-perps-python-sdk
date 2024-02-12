@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "gfx_perp_sdk"
-version = "0.0.9"
+version = "0.0.13"
 description = "A Python SDK for interacting with the GFX Perps API"
 authors = ["_"]
 
