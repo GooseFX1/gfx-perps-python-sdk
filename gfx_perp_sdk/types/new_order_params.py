@@ -19,7 +19,7 @@ from podite import (
 class NewOrderParams:
     side: Side
     max_base_qty: Fractional
-    order_type: "OrderType"
+    order_type: OrderType
     self_trade_behavior: SelfTradeBehavior
     match_limit: U64
     limit_price: Fractional
