@@ -1,10 +1,12 @@
 import asyncio
 import pytest
 from gfx_perp_sdk import (Perp, Product, Trader, utils)
-from gfx_perp_sdk.types import Fractional, base
+from gfx_perp_sdk.types import Fractional, base, Side
 from solana.rpc.api import Client
 from solders.pubkey import Pubkey
 from solders.keypair import Keypair
+
+from gfx_perp_sdk.types.order_type import OrderType
 
 #recommend using dedicated RPC
 rpc_client = Client("https://api.mainnet-beta.solana.com")
@@ -129,7 +131,7 @@ async def test_trader_new_order_single():
     product.init_by_index(0)
     t = Trader(perp) 
     t.init()
-    ix = t.new_order_ix(product, Fractional.to_decimal(50000), Fractional.to_decimal(35), 'ask', 'limit')
+    ix = t.new_order_ix(product, Fractional.to_decimal(50000), Fractional.to_decimal(35), side=Side.ASK, order_type=OrderType.LIMIT)
     response = utils.send_solana_transaction(rpc_client, keyp, ix[0], ix[1])
     print("response: ", response)
     status = utils.get_transaction_status(connection=rpc_client, raw_sigs=[response])
@@ -149,8 +151,8 @@ async def test_trader_new_order_single_with_callback_id():
         product, 
         Fractional.to_decimal(1000), 
         Fractional.to_decimal(35), 
-        'bid', 
-        'limit',
+        Side.BID, 
+        OrderType.LIMIT,
         base.SelfTradeBehavior.ABORT_TRANSACTION,
         324567
         )
@@ -169,13 +171,13 @@ async def test_trader_new_order_multiple():
     product.init_by_index(0)
     t = Trader(perp) 
     t.init()
-    ix1 = t.new_order_ix(product, Fractional.to_decimal(50000), Fractional.to_decimal(134), 'ask', 'limit')
+    ix1 = t.new_order_ix(product, Fractional.to_decimal(50000), Fractional.to_decimal(134), Side.ASK, OrderType.LIMIT)
     ix2 = t.new_order_ix(
         product, 
         Fractional.to_decimal(1000), 
         Fractional.to_decimal(135.2), 
-        'ask', 
-        'post_only',
+        Side.ASK, 
+        OrderType.POST_ONLY,
         base.SelfTradeBehavior.CANCEL_PROVIDE,
         23456
         )
@@ -229,15 +231,15 @@ async def test_multi_new_orders():
     t = Trader(perp)
     t.init()
     ix1 = t.new_order_ix(product, Fractional.to_decimal(
-        13000), Fractional.to_decimal(140), 'bid', 'limit')
+        13000), Fractional.to_decimal(140), Side.BID, OrderType.LIMIT)
     ix3 = t.new_order_ix(product, Fractional.to_decimal(
-        11000), Fractional.to_decimal(32.41), 'ask', 'limit')
+        11000), Fractional.to_decimal(32.41), Side.ASK, OrderType.LIMIT)
     ix2 = t.new_order_ix(product, Fractional.to_decimal(
-        12000), Fractional.to_decimal(32.46), 'ask', 'limit')
+        12000), Fractional.to_decimal(32.46), Side.ASK, OrderType.LIMIT)
     # ix1 = t.new_order_ix(product, Fractional.to_decimal(
-    #     10000), Fractional.to_decimal(32.4), 'ask', 'limit')
+    #     10000), Fractional.to_decimal(32.4), Side.ASK, OrderType.LIMIT)
     # ix2 = t.new_order_ix(product, Fractional.to_decimal(
-    #     210000), Fractional.to_decimal(32.44), 'ask', 'limit')
+    #     210000), Fractional.to_decimal(32.44), Side.ASK, OrderType.LIMIT)
     response = utils.send_solana_transaction(rpc_client, keyp, ix1[0] + ix2[0] + ix3[0], ix1[1])
     # response = utils.send_solana_transaction(rpc_client, keyp,ix3[0], ix3[1])
     # response = utils.send_solana_transaction(rpc_client, keyp, ix1[0], ix1[1])
@@ -298,3 +300,21 @@ async def test_get_all_trg_accounts():
     print("\n status:", status)
     
     assert result != None
+
+
+# @pytest.mark.asyncio
+@pytest.mark.skip(reason="This test will send transactions to the Solana network.")
+async def test_get_trader_positions():
+    perp = Perp(rpc_client, 'mainnet', keyp)
+    perp.init()
+    product = Product(perp)
+    product.init_by_name('SOL-PERP')
+    t = Trader(perp)
+    t.init()
+    print()
+    trader_positions_pi = t.get_trader_positions_by_product_index(0)
+    print('Trader Positions by Index: ', trader_positions_pi)
+    trader_positions_pn = t.get_trader_positions_by_product_name("SOL-PERP")
+    print('Trader Positions by Name: ', trader_positions_pn)
+    trader_positions_all = t.get_trader_positions_for_all_products()
+    print('Trader Positions for all Products: ', trader_positions_all)

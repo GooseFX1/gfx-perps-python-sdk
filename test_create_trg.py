@@ -23,12 +23,12 @@ perp.init()
 t = Trader(perp)
 # ix = t.create_trader_account_ixs()
 # response = send_solana_transaction(rpc_client, wallet, ix[0], ix[1])
-# print(response)  # ezyH47nEGfjGt9BJ91XyXfqo4QNhpFfxgTWyo2vpsJ2ouSZULvpf4jBA7knH81sXZEG4SwQupS9nC76ZzWsanmS
+# print(response)
 
 print()
 print("address:", str(wallet.pubkey()))
-t.init()
-ix = t.deposit_funds_ix(Fractional.to_decimal(1000))
-response = utils.send_solana_transaction(rpc_client, wallet, ix[0], ix[1])
-print("response:", response)
+# t.init()
+# ix = t.deposit_funds_ix(Fractional.to_decimal(1000))
+# response = utils.send_solana_transaction(rpc_client, wallet, ix[0], ix[1])
+# print("response:", response)
     

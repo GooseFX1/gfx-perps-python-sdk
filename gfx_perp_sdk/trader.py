@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 from solders.pubkey import Pubkey as PublicKey
 from solders.keypair import Keypair
 from solders.rpc.responses import GetAccountInfoResp
@@ -9,8 +9,7 @@ import gfx_perp_sdk.utils as utils
 
 from .perp import Perp
 from .product import Product
-from .types import (TraderRiskGroup, Fractional,
-                    Solana_pubkey, base, OrderType)
+from .types import (TraderRiskGroup, Fractional, Solana_pubkey, base, Side, OrderType)
 from .instructions.initialize_trader_risk_group import initialize_trader_risk_group
 from .instructions.deposit_funds import (deposit_funds, DepositFundsParams)
 from .instructions.withdraw_funds import (withdraw_funds, WithdrawFundsParams)
@@ -18,20 +17,29 @@ from .instructions.new_order import (new_order, NewOrderParams)
 from .instructions.cancel_order import (cancel_order, CancelOrderParams)
 from .instructions.close_trader_risk_group import close_trader_risk_group
 from podite import U32
-class TraderPosition:
+from dataclasses import dataclass
+
+@dataclass
+class TraderPositionVer:
     quantity: str
     averagePrice: str
-    index: str
+    index: int
     def __init__(self, quantity: Fractional, averagePrice: Fractional, index: int):
         self.quantity = quantity
         self.averagePrice = averagePrice
-        self.index = str(index)
+        self.index = index
     def to_json(self):
         return {
             "quantity": self.quantity,
             "averagePrice": self.averagePrice,
             "index": self.index
         }
+    def __str__(self):
+        return f"TraderPositionVer(quantity={self.quantity}, averagePrice={self.averagePrice}, index={self.index})"
+
+    def __repr__(self):
+        return f"TraderPositionVer(quantity={self.quantity}, averagePrice={self.averagePrice}, index={self.index})"
+
 class Trader(Perp):
     traderRiskGroup: TraderRiskGroup
     trgBytes: bytes
@@ -41,7 +49,7 @@ class Trader(Perp):
     totalDeposited: str
     totalWithdrawn: str
     marginAvailable: str
-    traderPositions: [TraderPosition]
+    traderPositions: List[TraderPositionVer]
     totalTradedVolume: str
 
     def __init__(self, perp: Perp):
@@ -129,12 +137,12 @@ class Trader(Perp):
         self.marketProductGroupVault = utils.getMpgVault(self.ADDRESSES['VAULT_SEED'], self.ADDRESSES['MPG_ID'], self.ADDRESSES['DEX_ID'])
         self.totalDeposited = self.traderRiskGroup.total_deposited.value / 100000
         self.totalWithdrawn = self.traderRiskGroup.total_withdrawn.value / 100000
-        positions: [TraderPosition] = []
+        positions: List[TraderPositionVer] = []
         idx = 0
         for trader_position in self.traderRiskGroup.trader_positions:
             if trader_position.product_key != SYS_PROGRAM_ID:
                 positions.append(
-                    TraderPosition(trader_position.position.value / 100000,
+                    TraderPositionVer(trader_position.position.value / 100000,
                                     self.traderRiskGroup.avg_position[idx].price.value / 100, idx)
                 )
             idx = idx + 1
@@ -205,34 +213,43 @@ class Trader(Perp):
         return [[ix1], [self.wallet]]
 
     def new_order_ix(self, product: Product, size: Fractional,
-                     price: Fractional, side: str, order_type: str, 
+                     price: Fractional, 
+                     side: Side, 
+                     order_type: OrderType, 
                      self_trade_behaviour: Optional[base.SelfTradeBehavior] = base.SelfTradeBehavior.DECREMENT_TAKE,  
                      callback_id: Optional[U32] = 0):
-        if side == 'bid':
-            sideParam = base.Side.BID
-        elif side == 'ask':
-            sideParam = base.Side.ASK
-        else:
+        # if side == 'bid':
+        #     sideParam = base.Side.BID
+        # elif side == 'ask':
+        #     sideParam = base.Side.ASK
+        # else:
+        #     raise KeyError("Side can only be bid or ask")
+        if side not in  {Side.BID, Side.ASK}:
             raise KeyError("Side can only be bid or ask")
+        if order_type not in {OrderType.LIMIT, OrderType.MARKET, OrderType.FILL_OR_KILL, OrderType.IMMEDIATE_OR_CANCEL, OrderType.POST_ONLY}:
+            raise KeyError(
+                    "Order type can onle be limit, market, fill_or_kill, immediate_or_cancel or post_only")
+
 
         match_limit = 1000
-        if order_type == "limit":
-            order_type_param = OrderType.LIMIT
-        elif order_type == "market":
-            order_type_param = OrderType.MARKET
-        elif order_type == "fill_or_kill":
-            order_type_param = OrderType.FILL_OR_KILL
-        elif order_type == "immediate_or_cancel":
-            order_type_param = OrderType.IMMEDIATE_OR_CANCEL
-        elif order_type == "post_only":
-            order_type_param = OrderType.POST_ONLY
-        else:
-            raise KeyError(
-                "Order type can onle be limit, market, fill_or_kill, immediate_or_cancel or post_only")
+        # if order_type == "limit":
+        #     order_type_param = OrderType.LIMIT
+        # elif order_type == "market":
+        #     order_type_param = OrderType.MARKET
+        # elif order_type == "fill_or_kill":
+        #     order_type_param = OrderType.FILL_OR_KILL
+        # elif order_type == "immediate_or_cancel":
+        #     order_type_param = OrderType.IMMEDIATE_OR_CANCEL
+        # elif order_type == "post_only":
+        #     order_type_param = OrderType.POST_ONLY
+        # else:
+        #     raise KeyError(
+        #         "Order type can onle be limit, market, fill_or_kill, immediate_or_cancel or post_only")
+        
 
-        newParams = NewOrderParams(sideParam,
+        newParams = NewOrderParams(side,
                                    size,
-                                   order_type_param,
+                                   order_type,
                                    self_trade_behaviour,
                                    match_limit,
                                    price,
@@ -363,20 +380,20 @@ class Trader(Perp):
         trg = utils.get_trader_risk_group(self.connection, self.trgKey)
         return trg.total_withdrawn.value / 10 ** 5
     
-    def get_trader_positions_by_product_index(self, index: int):
+    def get_trader_positions_by_product_index(self, index: int) -> List[TraderPositionVer] :
         self.refresh_data()
         # check product_key of traderPosition to be equal to product.PRODUCT_ID
         products = None
         products = self.ADDRESSES
         if index > len(products['PRODUCTS']) - 1:
             raise IndexError('Index out of bounds')
-        positions = []
+        positions: List[TraderPositionVer] = []
         for traderPosition in self.traderPositions:
             if traderPosition.index == index:
                 positions.append(traderPosition)
         return positions
     
-    def get_trader_positions_by_product_name(self, product_name: str):
+    def get_trader_positions_by_product_name(self, product_name: str) -> List[TraderPositionVer] :
         self.refresh_data()
         selectedProductIndex = None
         products = self.ADDRESSES
@@ -385,21 +402,29 @@ class Trader(Perp):
                 selectedProductIndex = index
         if selectedProductIndex == None:
             raise IndexError('Index out of bounds')
-        positions = []
+        positions: List[TraderPositionVer] = []
         for traderPosition in self.traderPositions:
             if traderPosition.index == selectedProductIndex:
                 positions.append(traderPosition)
         return positions
     
-    def get_trader_positions_for_trg(self, trgkey: PublicKey) -> [TraderPosition] :
+    def get_trader_positions_for_all_products(self) -> List[TraderPositionVer] :
+        self.refresh_data()
+        trader_positions: List[TraderPositionVer] = []
+        for trader_position in self.traderPositions:
+            if trader_position.quantity != 0:
+                trader_positions.append(trader_position)
+        return trader_positions
+
+    def get_trader_positions_for_trg(self, trgkey: PublicKey) -> List[TraderPositionVer] :
         trg = utils.get_trader_risk_group(self.connection, trgkey)
-        positions: [TraderPosition] = []
+        positions: List[TraderPositionVer] = []
         idx = 0
         for trader_position in trg.trader_positions:
             if trader_position.product_key != SYS_PROGRAM_ID:
                 positions.append(
-                    TraderPosition(trader_position.position.value / 100000,
-                                    trg.avg_position[idx].price.value / 100, idx).to_json()
+                    TraderPositionVer(trader_position.position.value / 100000,
+                                    trg.avg_position[idx].price.value / 100, idx)
                 )
             idx = idx + 1
         return positions

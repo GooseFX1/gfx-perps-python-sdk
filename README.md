@@ -165,7 +165,7 @@ The New order instruction needs the following as parameters
   product.initByIndex(0)
   trader = Trader(perp)
   trader.init()
-  [ix, signers] = trader.new_order_ix(product, Fractional.to_decimal(50000), Fractional.to_decimal(35), 'ask', 'limit')
+  [ix, signers] = trader.new_order_ix(product, Fractional.to_decimal(50000), Fractional.to_decimal(35), Side.ASK, OrderType.Limit)
 ```
 
 ### Cancel Order
