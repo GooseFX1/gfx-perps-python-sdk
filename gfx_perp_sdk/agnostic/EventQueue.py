@@ -9,7 +9,7 @@ from gfx_perp_sdk.agnostic.Slabs import combine_u64_to_u128, CallbackInfo
 class FillEvent:
     tag: int
     takerSide: int
-    makerOrderId: int
+    makerOrderId: str
     quoteSize: int
     baseSize: int
     LEN: int = 40
@@ -92,6 +92,7 @@ class EventQueue:
                     '<B6xQQQQ', event_chunk[1: FillEvent.LEN])             
                 makerOrderId = combine_u64_to_u128(
                     makerOrderIdUp, makerOrderIdDown)
+                makerOrderId = str(makerOrderId)
                 fill_event = FillEvent(
                     tag, takerSide, makerOrderId, quoteSize, baseSize)
 

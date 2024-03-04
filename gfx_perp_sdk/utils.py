@@ -25,6 +25,17 @@ from gfx_perp_sdk.types.solana_pubkey import Solana_pubkey
 from gfx_perp_sdk.types.trader_risk_group import TraderRiskGroup
 from deepdiff import DeepDiff 
 import time
+from enum import Enum
+
+
+class TraderSubscriptionType(Enum):
+    activeProducts = "activeProducts"
+    totalDeposited = "totalDeposited"
+    totalWithdrawn = "totalWithdrawn"
+    cashBalance = "cashBalance"
+    traderPositions = "traderPositions"
+    openOrders = "openOrders"
+
 
 @dataclass
 class L3OrderbookInfo:
@@ -337,7 +348,8 @@ def get_user_info_bid_ask(connection: Client, bid_ask: L3OrderbookInfo):
         'price': bid_ask.price, 
         'orderSide': bid_ask.orderSide, 
         'user': bid_ask.user, 
-        'userWallet': userWallet
+        'userWallet': userWallet,
+        'callbackId': bid_ask.callBackId
     }
         
 def get_user_info_from_trader_risk_group(connection: Client, order_list: Dict[str, List[L3OrderbookInfo]], trgKey: PublicKey):
@@ -349,7 +361,8 @@ def get_user_info_from_trader_risk_group(connection: Client, order_list: Dict[st
             'price': bid.price, 
             'orderSide': bid.orderSide, 
             'user': bid.user, 
-            'userWallet': userWalletPubkey
+            'userWallet': userWalletPubkey,
+            'callbackId': bid.callBackId
         })
     for ask in order_list["asks"]:
         orders_list_with_user['asks'].append({
@@ -357,16 +370,17 @@ def get_user_info_from_trader_risk_group(connection: Client, order_list: Dict[st
             'price': ask.price, 
             'orderSide': ask.orderSide, 
             'user': ask.user, 
-            'userWallet': userWalletPubkey
+            'userWallet': userWalletPubkey,
+            'callbackId': ask.callBackId
         })
     return orders_list_with_user
 
-def compare_trader_risk_groups(prevTrg: TraderRiskGroup, newtrg: TraderRiskGroup, change_param: str):
+def compare_trader_risk_groups(prevTrg: TraderRiskGroup, newtrg: TraderRiskGroup, subscription_type: TraderSubscriptionType):
     differences = {}
     prev_trg_json = prevTrg.to_json()
     new_trg_json = newtrg.to_json()
     
-    if change_param == 'active_products':
+    if subscription_type == TraderSubscriptionType.activeProducts:
         try:
             old_active_products = set(tuple(sorted(d.items())) for d in prev_trg_json.get('active_products', []))
             new_active_products = set(tuple(sorted(d.items())) for d in new_trg_json.get('active_products', []))
@@ -381,13 +395,13 @@ def compare_trader_risk_groups(prevTrg: TraderRiskGroup, newtrg: TraderRiskGroup
                 'removed': list(removed_products)
             }
         return differences
-    elif change_param == 'total_deposited' or change_param == 'total_withdrawn' or change_param == 'cash_balance':
-        old_value = prev_trg_json.get(change_param, 0)
-        new_value = new_trg_json.get(change_param, 0)
+    elif subscription_type in {TraderSubscriptionType.totalDeposited, TraderSubscriptionType.totalWithdrawn, TraderSubscriptionType.cashBalance}:
+        old_value = prev_trg_json.get(subscription_type, 0)
+        new_value = new_trg_json.get(subscription_type, 0)
         if old_value != new_value:
-            differences[change_param] = {'old': old_value, 'new': new_value}
+            differences[subscription_type] = {'old': old_value, 'new': new_value}
         return differences
-    elif change_param == 'trader_positions':
+    elif subscription_type == TraderSubscriptionType.traderPositions:
         old_positions = {pos['product_key']: pos for pos in prev_trg_json.get('trader_positions', [])}
         new_positions = {pos['product_key']: pos for pos in new_trg_json.get('trader_positions', [])}
         position_changes = {}
@@ -402,7 +416,7 @@ def compare_trader_risk_groups(prevTrg: TraderRiskGroup, newtrg: TraderRiskGroup
         if position_changes:
             differences['trader_positions'] = position_changes
         return differences
-    elif change_param == 'open_orders':
+    elif subscription_type == TraderSubscriptionType.openOrders:
         old_orders = set((order['id'] for order in prev_trg_json.get('open_orders', {}).get('orders', [])))
         new_orders = set((order['id'] for order in new_trg_json.get('open_orders', {}).get('orders', [])))
         added_orders = new_orders - old_orders
@@ -418,6 +432,8 @@ def compare_trader_risk_groups(prevTrg: TraderRiskGroup, newtrg: TraderRiskGroup
         return differences
     
     return differences
+
+# can be commented
 def process_deepdiff(differences, prev_data, new_data, type: str):
     structured_diff = {
         "values_changed": [],
@@ -551,6 +567,7 @@ def convert_userAccount_to_string(events: List[T]) -> List[T]:
     
     return converted_events
 
+# can be commented
 def calculate_bid_ask_changes(
     prevBidsAsks: List[L3OrderbookInfo],
     newBidsAsks: List[L3OrderbookInfo]
@@ -565,6 +582,7 @@ def calculate_bid_ask_changes(
     bid_ask_removed = processed_deep_differences_bids_asks["iterable_item_removed"]
     return bid_ask_value_changes, bid_ask_added, bid_ask_removed
 
+# can be commented
 def compare_slabs(a: L3OrderbookInfo,b: L3OrderbookInfo) -> bool:
     return (a.size == b.size and
             a.price == b.price and
@@ -575,21 +593,17 @@ def compare_slabs(a: L3OrderbookInfo,b: L3OrderbookInfo) -> bool:
 def get_slab_changes(
         prev_slab_data: List[L3OrderbookInfo],
         current_slab_data: List[L3OrderbookInfo]
-) -> List[L3OrderbookInfo]:
+) -> Tuple[List[L3OrderbookInfo], List[L3OrderbookInfo]]:
     new_slab_data: List[L3OrderbookInfo] = []
-
-    for current_slab in current_slab_data:
-        found = False
-        for prev_slab in prev_slab_data:
-            is_same = compare_slabs(current_slab, prev_slab)
-            if is_same:
-                found = True
-                break
-
-        if not found:
-            new_slab_data.append(current_slab)
-
-    return new_slab_data
+    removed_slab_data: List[L3OrderbookInfo] = []
+    common_indexes = set([i for i, x in enumerate(current_slab_data) if x in prev_slab_data])
+    for i in range(len(prev_slab_data)):
+        if i not in common_indexes:
+            removed_slab_data.append(prev_slab_data[i])
+    for i in range(len(current_slab_data)):
+        if i not in common_indexes:
+            new_slab_data.append(current_slab_data[i])
+    return new_slab_data, removed_slab_data
 
 def compare_events(a: FillEventInfo, b: FillEventInfo) -> bool:
     return (a.fill_event.baseSize == b.fill_event.baseSize and
@@ -618,30 +632,30 @@ def calculate_fill_changes(
 
     return new_fill_events 
 
-def calculate_out_changes(
-    prev_out_events: List[OutEventInfo],
-    new_out_events: List[OutEventInfo],
-    decimals: int,
-    tick_size: int,
-):
-    prev_out_events_json = [event.to_json() for event in prev_out_events]
-    new_out_events_json = [event.to_json() for event in new_out_events]
+# def calculate_out_changes(
+#     prev_out_events: List[OutEventInfo],
+#     new_out_events: List[OutEventInfo],
+#     decimals: int,
+#     tick_size: int,
+# ):
+#     prev_out_events_json = [event.to_json() for event in prev_out_events]
+#     new_out_events_json = [event.to_json() for event in new_out_events]
 
-    for event in prev_out_events_json:
-        event['price'] = ((event['orderId'] >> 64) >> 32) / tick_size
-        event['baseSizeConverted'] = event['baseSize'] / (10 ** (decimals + 5))
+#     for event in prev_out_events_json:
+#         event['price'] = ((event['orderId'] >> 64) >> 32) / tick_size
+#         event['baseSizeConverted'] = event['baseSize'] / (10 ** (decimals + 5))
 
-    for event in new_out_events_json:
-        event['price'] = ((event['orderId'] >> 64) >> 32) / tick_size
-        event['baseSizeConverted'] = event['baseSize'] / (10 ** (decimals + 5))
+#     for event in new_out_events_json:
+#         event['price'] = ((event['orderId'] >> 64) >> 32) / tick_size
+#         event['baseSizeConverted'] = event['baseSize'] / (10 ** (decimals + 5))
 
-    deep_differences_out = DeepDiff(prev_out_events_json, new_out_events_json, ignore_order=True)
-    processed_deep_differences_out = process_deepdiff(deep_differences_out, prev_out_events_json, new_out_events_json, "FILL_OUT")
-    out_value_changes = processed_deep_differences_out["values_changed"]
-    out_added = processed_deep_differences_out["iterable_item_added"]
-    out_removed = processed_deep_differences_out["iterable_item_removed"]
+#     deep_differences_out = DeepDiff(prev_out_events_json, new_out_events_json, ignore_order=True)
+#     processed_deep_differences_out = process_deepdiff(deep_differences_out, prev_out_events_json, new_out_events_json, "FILL_OUT")
+#     out_value_changes = processed_deep_differences_out["values_changed"]
+#     out_added = processed_deep_differences_out["iterable_item_added"]
+#     out_removed = processed_deep_differences_out["iterable_item_removed"]
 
-    return out_value_changes, out_added, out_removed
+#     return out_value_changes, out_added, out_removed
 
 def trader_position_status(orders_list, current_market_price):
     net_position = 0.0

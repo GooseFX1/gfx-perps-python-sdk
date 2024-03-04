@@ -2,7 +2,6 @@ from dataclasses import asdict
 from typing import Dict, List
 from solana.rpc.api import Client
 from solders.keypair import Keypair
-from gfx_perp_sdk.agnostic.EventQueue import FillEventInfo, OutEventInfo
 from gfx_perp_sdk.product import Product
 from gfx_perp_sdk.perp import Perp
 from gfx_perp_sdk import utils
@@ -20,7 +19,7 @@ from gfx_perp_sdk.types.trader_risk_group import TraderRiskGroup
 rpc_client = Client("https://api.mainnet-beta.solana.com")
 keyp = Keypair.from_bytes([])
 
-def on_asks_change(updated_asks, new_asks):
+def on_asks_change(updated_asks: List[utils.L3OrderbookInfo], new_asks: List[utils.L3OrderbookInfo], removed_asks: List[utils.L3OrderbookInfo]):
     # print ("updated_asks:", updated_asks)
     if len(updated_asks) > 0:
         timestamp = datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
@@ -32,14 +31,30 @@ def on_asks_change(updated_asks, new_asks):
             os.makedirs(folder_path)
         updated_asks_json = []
         for updated_ask in updated_asks:
-            updated_asks_json.append(updated_ask.to_json())
+            if isinstance(updated_ask, utils.L3OrderbookInfo):
+                updated_asks_json.append(updated_ask.to_json())
+            else:
+                print(f"Unexpected type in updated_asks: {updated_ask}")
         new_asks_json = []
         for new_ask in new_asks:
-            new_asks_json.append(new_ask.to_json())
-        utils.write_json(updated_asks_json, f'{folder_path}/updated_asks.json')
-        utils.write_json(new_asks_json, f'{folder_path}/new_asks.json')
+            if isinstance(new_ask, utils.L3OrderbookInfo):
+                new_asks_json.append(new_ask.to_json())
+            else:
+                print(f"Unexpected type in new_asks: {new_ask}")
+        removed_asks_json = []
+        for removed_ask in removed_asks:
+            if isinstance(removed_ask, utils.L3OrderbookInfo):
+                removed_asks_json.append(removed_ask.to_json())
+            else:
+                print(f"Unexpected type in removed_asks: {removed_ask}")
+        if len(removed_asks_json):  
+            utils.write_json(updated_asks_json, f'{folder_path}/updated_asks.json')
+        if len(new_asks_json):
+            utils.write_json(new_asks_json, f'{folder_path}/new_asks.json')
+        if len(removed_asks_json):
+            utils.write_json(removed_asks_json, f'{folder_path}/removed_asks.json')
 
-def on_bids_change(updated_bids, new_bids):
+def on_bids_change(updated_bids: List[utils.L3OrderbookInfo], new_bids: List[utils.L3OrderbookInfo], removed_bids: List[utils.L3OrderbookInfo]):
     # print ("updated_bids:", updated_bids)
     if len(updated_bids) > 0:
         timestamp = datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
@@ -51,12 +66,28 @@ def on_bids_change(updated_bids, new_bids):
             os.makedirs(folder_path)
         updated_bids_json = []
         for updated_bid in updated_bids:
-            updated_bids_json.append(updated_bid.to_json())
+            if isinstance(updated_bid, utils.L3OrderbookInfo):
+                updated_bids_json.append(updated_bid.to_json())
+            else:
+                print(f"Unexpected type in updated_bids: {updated_bid}")
         new_bids_json = []
         for new_bid in new_bids:
-            new_bids_json.append(new_bid.to_json())
-        utils.write_json(updated_bids_json, f'{folder_path}/updated_bids.json')
-        utils.write_json(new_bids_json, f'{folder_path}/new_bids.json')
+            if isinstance(new_bid, utils.L3OrderbookInfo):
+                new_bids_json.append(new_bid.to_json())
+            else:
+                print(f"Unexpected type in new_bids: {new_bid}")
+        removed_bids_json = []
+        for removed_bid in removed_bids:
+            if isinstance(removed_bid, utils.L3OrderbookInfo):
+                removed_bids_json.append(removed_bid.to_json())
+            else:
+                print(f"Unexpected type in removed_bids: {removed_bid}")
+        if len(updated_bids_json):
+            utils.write_json(updated_bids_json, f'{folder_path}/updated_bids.json')
+        if len(new_bids_json):
+            utils.write_json(new_bids_json, f'{folder_path}/new_bids.json')
+        if len(removed_bids_json):
+            utils.write_json(removed_bids_json, f'{folder_path}/removed_bids.json')
 
 def on_positions_change(new_fill_events):
     # print("new_fill_events:", new_fill_events)
@@ -223,12 +254,12 @@ async def main():
     bids_sub = asyncio.create_task(product.subscribe_to_bids(on_bids_change))
     asks_sub = asyncio.create_task(product.subscribe_to_asks(on_asks_change))
     positions_sub = asyncio.create_task(t.subscribe_trader_positions(product, on_positions_change))
-    act_sub = asyncio.create_task(t.subscribe_to_trader_risk_group(on_active_products_change, "active_products"))
-    deposit_sub = asyncio.create_task(t.subscribe_to_trader_risk_group(on_total_deposited_change, "total_deposited"))
-    withdraw_sub = asyncio.create_task(t.subscribe_to_trader_risk_group(on_total_withdrawn_change, "total_withdrawn"))
-    cash_bal_sub = asyncio.create_task(t.subscribe_to_trader_risk_group(on_cash_balance_change, "cash_balance"))
-    trader_positions_sub = asyncio.create_task(t.subscribe_to_trader_risk_group(on_trader_positions_change, "trader_positions"))
-    open_orders_sub = asyncio.create_task(t.subscribe_to_trader_risk_group(on_open_orders_change, "open_orders"))
+    act_sub = asyncio.create_task(t.subscribe_to_trader_risk_group(on_active_products_change, utils.TraderSubscriptionType.activeProducts))
+    deposit_sub = asyncio.create_task(t.subscribe_to_trader_risk_group(on_total_deposited_change, utils.TraderSubscriptionType.totalDeposited))
+    withdraw_sub = asyncio.create_task(t.subscribe_to_trader_risk_group(on_total_withdrawn_change, utils.TraderSubscriptionType.totalWithdrawn))
+    cash_bal_sub = asyncio.create_task(t.subscribe_to_trader_risk_group(on_cash_balance_change, utils.TraderSubscriptionType.cashBalance))
+    trader_positions_sub = asyncio.create_task(t.subscribe_to_trader_risk_group(on_trader_positions_change, utils.TraderSubscriptionType.traderPositions))
+    open_orders_sub = asyncio.create_task(t.subscribe_to_trader_risk_group(on_open_orders_change, utils.TraderSubscriptionType.openOrders))
     # token_bal_sub = asyncio.create_task(t.subscribe_to_token_balance_change(on_trader_balance_change))
     orderDetails = product.get_order_details_by_order_id(l3ob['asks'][0].orderId)
     print("orderDetails:", orderDetails)
