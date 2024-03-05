@@ -335,8 +335,8 @@ class Trader(Perp):
     async def subscribe_trader_positions(self, product: Product, on_fill_out_change):
         await product.subscribe_to_trades(self.trgKey, on_fill_out_change)
     
-    async def subscribe_to_trader_risk_group(self, on_trader_state_change, change_param: str):
-        wss = self.connection._provider.endpoint_uri.replace("http", "ws")
+    async def subscribe_to_trader_risk_group(self, on_trader_state_change, subscription_type: utils.TraderSubscriptionType):
+        wss = self.connection._provider.endpoint_uri.replace("https", "ws")
         async with connect(wss) as solana_websocket:
             solana_websocket: SolanaWsClientProtocol
             await solana_websocket.account_subscribe(pubkey=self.trgKey, commitment="processed", encoding="base64")
@@ -351,7 +351,7 @@ class Trader(Perp):
                         r1 = msg[0].result.value.data
                         decoded = r1[8:]
                         currTrg: TraderRiskGroup = TraderRiskGroup.from_bytes(decoded)
-                        trg_diffs = utils.compare_trader_risk_groups(prevTrg, currTrg, change_param)
+                        trg_diffs = utils.compare_trader_risk_groups(prevTrg, currTrg, subscription_type)
                         if trg_diffs != {}:
                             on_trader_state_change(trg_diffs)
                         prevTrg = currTrg
@@ -430,7 +430,7 @@ class Trader(Perp):
         return positions
     
     async def subscribe_to_token_balance_change(self, callback_func):
-        wss = self.connection._provider.endpoint_uri.replace("http", "ws")
+        wss = self.connection._provider.endpoint_uri.replace("https", "ws")
         async with connect(wss) as solana_websocket:
             solana_websocket: SolanaWsClientProtocol
             await solana_websocket.account_subscribe(pubkey=self.userTokenAccount, commitment="processed", encoding="base64")

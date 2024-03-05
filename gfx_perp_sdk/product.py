@@ -25,7 +25,7 @@ class Product(Perp):
     marketSigner: PublicKey
     tick_size: int
     decimals: int
-    events: [FillEventInfo]
+    events: List[FillEventInfo]
 
     def __init__(self, perp: Perp):
         super(Product, self).__init__(perp.connection, 
@@ -167,7 +167,7 @@ class Product(Perp):
         wss = self.connection._provider.endpoint_uri.replace("https", "wss")
         async with connect(wss) as solana_webscoket:
             solana_webscoket: SolanaWsClientProtocol
-            await solana_webscoket.account_subscribe(pubkey=self.BIDS, encoding="base64+zstd")
+            await solana_webscoket.account_subscribe(pubkey=self.BIDS, commitment="processed", encoding="base64+zstd")
             first_resp = await solana_webscoket.recv()
 
             subscription_id = first_resp[0].result if first_resp and hasattr(
@@ -186,8 +186,8 @@ class Product(Perp):
                         bidDeserialized = Slab.deserialize(r1, 40)
                         currentBids = utils.process_deserialized_slab_data(bidDeserialized, None)
                         currentBidsProcessed = utils.processL3Ob(currentBids["bids"], None, self.tick_size, self.decimals)["bids"]
-                        new_bids = utils.get_slab_changes(prevBidsProcessed, currentBidsProcessed)
-                        on_bids_change(currentBidsProcessed, new_bids)
+                        new_bids, removed_bids = utils.get_slab_changes(prevBidsProcessed, currentBidsProcessed)
+                        on_bids_change(currentBidsProcessed, new_bids, removed_bids)
                         # bid_ask_value_changes, bid_ask_added, bid_ask_removed = utils.calculate_bid_ask_changes(prevBidsProcessed, currentBidsProcessed)
                         prevBidsProcessed = currentBidsProcessed
                         # prevBids = currentBids
@@ -200,7 +200,7 @@ class Product(Perp):
         wss = self.connection._provider.endpoint_uri.replace("https", "wss")
         async with connect(wss) as solana_webscoket:
             solana_webscoket: SolanaWsClientProtocol
-            await solana_webscoket.account_subscribe(pubkey=self.ASKS, encoding="base64+zstd")
+            await solana_webscoket.account_subscribe(pubkey=self.ASKS, commitment="processed", encoding="base64+zstd")
             first_resp = await solana_webscoket.recv()
 
             subscription_id = first_resp[0].result if first_resp and hasattr(
@@ -219,8 +219,8 @@ class Product(Perp):
                         askDeserialized = Slab.deserialize(r1, 40)
                         currentAsks = utils.process_deserialized_slab_data(None, askDeserialized)
                         currentAsksProcessed = utils.processL3Ob(None, currentAsks["asks"], self.tick_size, self.decimals)["asks"]
-                        new_asks = utils.get_slab_changes(prevAsksProcessed, currentAsksProcessed)
-                        on_asks_change(currentAsksProcessed, new_asks)
+                        new_asks, removed_asks = utils.get_slab_changes(prevAsksProcessed, currentAsksProcessed)
+                        on_asks_change(currentAsksProcessed, new_asks, removed_asks)
                         # bid_ask_value_changes, bid_ask_added, bid_ask_removed = utils.calculate_bid_ask_changes(prevAsksProcessed, currentAsksProcessed)
                         prevAsksProcessed = currentAsksProcessed
                         # prevAsks = currentAsks
@@ -234,7 +234,7 @@ class Product(Perp):
         wss = self.connection._provider.endpoint_uri.replace("https", "wss")
         async with connect(wss) as solana_webscoket:
             solana_webscoket: SolanaWsClientProtocol
-            await solana_webscoket.account_subscribe(pubkey=self.EVENT_QUEUE, encoding="base64+zstd")
+            await solana_webscoket.account_subscribe(pubkey=self.EVENT_QUEUE, commitment="processed", encoding="base64+zstd")
             first_resp = await solana_webscoket.recv()
 
             subscription_id = first_resp[0].result if first_resp and hasattr(
@@ -261,8 +261,6 @@ class Product(Perp):
 
                         new_fill_events = utils.calculate_fill_changes(self.events, newFillEvents)
                         self.events.extend(new_fill_events)
-                        if len(new_fill_events):
-                            print(new_fill_events)
                         on_positions_change(new_fill_events)
                         
                         # elif event_type == "outs":

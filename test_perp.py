@@ -182,9 +182,7 @@ async def test_trader_new_order_multiple():
         23456
         )
     response = utils.send_solana_transaction(rpc_client, keyp, ix1[0] + ix2[0], ix1[1])
-    print(response)
-    status = utils.get_transaction_status(connection=rpc_client, raw_sigs=[response])
-    print("\n status:", status)
+    print("\n response:", response)
     assert response != None
 
 # @pytest.mark.asyncio

@@ -12,16 +12,6 @@ class NETWORK_TYPE(Enum):
     devnet = "devnet"
     mainnet = "mainnet"
 
-class TradeSide(Enum):
-    buy = "buy"
-    sell = "sell"
-
-class OrderType(Enum):
-    limit = "limit"
-    market = "market"
-    immediateOrCancel = "immediateOrCancel"
-    postOnly = "postOnly"
-
 class Product_Type(TypedDict):
     name: str
     PRODUCT_ID: PublicKey
