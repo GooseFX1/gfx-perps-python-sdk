@@ -775,7 +775,8 @@ def send_solana_transaction(rpc_client: Client, wallet: Keypair, ixs: List[Trans
                               fee_payer=wallet.pubkey())
     for ix in ixs:
         transaction.add(ix)
-    transaction.add(set_compute_unit_price(priority_fees))
+    if priority_fees !=0:
+        transaction.add(set_compute_unit_price(priority_fees))
 
     result = rpc_client.send_transaction(transaction, *signers, opts=types.TxOpts(
         skip_preflight=False, preflight_commitment="confirmed"))
