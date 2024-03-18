@@ -34,7 +34,7 @@ ADDRESSES: Network = {
         "BUDDY_LINK_PROGRAM": PublicKey.from_string("BUDDYtQp7Di1xfojiCSVDksiYLQx511DPdj2nbtG9Yu5")
     },
     "DEVNET": {
-        "MPG_ID": PublicKey.from_string("BFqj3JFXV92vrBLhmXnLM2Dkkg9VJN6k8NbGoTxxeiUv"),
+        "MPG_ID": PublicKey.from_string("GSiRLUGwJsPn3RVozE6auGyTMZ8cg9c7HnAtTKzeb4Z8"),
         "DEX_ID": PublicKey.from_string("BjpU1ACJY2bFj7aVTiMJLhM7H1ePxwkfDhjyY9dW9dbo"),
         "INSTRUMENTS_ID": PublicKey.from_string("VXD2JfYWTiLuQLZA4jXN58cCxQe1XhaquNHAA1FEDWW"),
         "FEES_ID": PublicKey.from_string("2o2VABUDicRrLSzb5U4VvBrnVbtnDdCMowrMg9x7RGnD"),
@@ -45,16 +45,16 @@ ADDRESSES: Network = {
         "PRODUCTS": [
             {
                 "name": "SOL-PERP",
-                "PRODUCT_ID": PublicKey.from_string("n3Lx4oVjUN1XAD6GMB9PLLhX9W7TPakdzW461mhF95u"),
-                "ORDERBOOK_ID": PublicKey.from_string("3RPexPyzUBQ2iamwr4CfTc37we4dgYNn2CkP4Bn8WbZT"),
-                "BIDS": PublicKey.from_string("7HAA7GWvhZCeXe2pheowgMox66Mh2fQQ6S2ZB9yha7cU"),
-                "ASKS": PublicKey.from_string("9PeKnBnyBZRK5Ys6PyR4upP2861bU55VGB59wfSUAczS"),
-                "EVENT_QUEUE": PublicKey.from_string("HJRax1uuCxs1hDzSyZveZ6eYx5h5UEbypTMrQ1AoWpjo"),
+                "PRODUCT_ID": PublicKey.from_string("DUCFhVbomXJHZFJPdgYEQVtBGfADon9qDMTE2hbnzi26"),
+                "ORDERBOOK_ID": PublicKey.from_string("7xiz1kHfapP65m5dYjgt2uVV7RqBFcFa3kxvqrRTGjz3"),
+                "BIDS": PublicKey.from_string("DP5fvyaV8bDGTTntrqFjZ2Z1xek21z16x8KfhBsrCTBb"),
+                "ASKS": PublicKey.from_string("DJkXtHhwzRiwpz3oDu3SJbj3VPHTHhiLjqqBQM5FtSBj"),
+                "EVENT_QUEUE": PublicKey.from_string("Aj7T65BVGVHSfcKv3A52ZG8y6FQiEMUSipgyCHbosAZN"),
                 "tick_size": 100,
                 "decimals": 7
             }
         ],
-        "VAULT_MINT": PublicKey.from_string("3Q6dz8cLd4BW1kyuGyUaS7qhTtFP7tGS55Y7fybCUfNy"),
+        "VAULT_MINT": PublicKey.from_string("Bg2f3jstf2Co4Hkrxsn7evzvRwLbWYmuzaLUPGnjCwAA"),
         "VAULT_SEED": "market_vault",
         "FEES_SEED": "fee_model_config_acct",
         "TRADER_FEE_ACCT_SEED": "trader_fee_acct",

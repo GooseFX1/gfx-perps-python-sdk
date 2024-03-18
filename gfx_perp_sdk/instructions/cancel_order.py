@@ -40,6 +40,7 @@ class CancelOrderIx:
     risk_output_register: AccountMeta
     trader_risk_state_acct: AccountMeta
     risk_signer: AccountMeta
+    event_emitter: AccountMeta
     remaining_accounts: Optional[List[AccountMeta]]
 
     # data fields
@@ -63,6 +64,7 @@ class CancelOrderIx:
         keys.append(self.risk_output_register)
         keys.append(self.trader_risk_state_acct)
         keys.append(self.risk_signer)
+        keys.append(self.event_emitter)
         if self.remaining_accounts is not None:
             keys.extend(self.remaining_accounts)
 
@@ -96,6 +98,7 @@ def cancel_order(
     risk_output_register: Union[str, PublicKey, AccountMeta],
     trader_risk_state_acct: Union[str, PublicKey, AccountMeta],
     risk_signer: Union[str, PublicKey, AccountMeta],
+    event_emitter: Union[str, PublicKey, AccountMeta],
     params: CancelOrderParams,
     program_id: PublicKey,
     system_program: Union[str, PublicKey, AccountMeta],
@@ -198,7 +201,12 @@ def cancel_order(
             is_signer=False,
             is_writable=False,
         )
-
+    if isinstance(event_emitter, (str, PublicKey)):
+        event_emitter = to_account_meta(
+            event_emitter,
+            is_signer=False,
+            is_writable=True,
+        )
     return CancelOrderIx(
         program_id=program_id,
         user=user,
@@ -217,6 +225,7 @@ def cancel_order(
         risk_output_register=risk_output_register,
         trader_risk_state_acct=trader_risk_state_acct,
         risk_signer=risk_signer,
+        event_emitter=event_emitter,
         remaining_accounts=remaining_accounts,
         params=params,
     ).to_instruction()

@@ -29,6 +29,7 @@ class DepositFundsIx:
     trader_risk_group: AccountMeta
     market_product_group: AccountMeta
     market_product_group_vault: AccountMeta
+    event_emitter: AccountMeta
     remaining_accounts: Optional[List[AccountMeta]]
 
     # data fields
@@ -42,6 +43,7 @@ class DepositFundsIx:
         keys.append(self.trader_risk_group)
         keys.append(self.market_product_group)
         keys.append(self.market_product_group_vault)
+        keys.append(self.event_emitter)
         if self.remaining_accounts is not None:
             keys.extend(self.remaining_accounts)
 
@@ -65,6 +67,7 @@ def deposit_funds(
     trader_risk_group: Union[str, PublicKey, AccountMeta],
     market_product_group: Union[str, PublicKey, AccountMeta],
     market_product_group_vault: Union[str, PublicKey, AccountMeta],
+    event_emitter: Union[str, PublicKey, AccountMeta],
     params: DepositFundsParams,
     program_id: Union[str, PublicKey, AccountMeta],
     token_program: Union[str, PublicKey, AccountMeta] = PublicKey.from_string(
@@ -107,6 +110,12 @@ def deposit_funds(
             is_signer=False,
             is_writable=True,
         )
+    if isinstance(event_emitter, (str, PublicKey)):
+        event_emitter = to_account_meta(
+            event_emitter,
+            is_signer=False,
+            is_writable=True,
+        )
 
     return DepositFundsIx(
         program_id=program_id,
@@ -116,6 +125,7 @@ def deposit_funds(
         trader_risk_group=trader_risk_group,
         market_product_group=market_product_group,
         market_product_group_vault=market_product_group_vault,
+        event_emitter=event_emitter,
         remaining_accounts=None,
         params=params,
     ).to_instruction()
