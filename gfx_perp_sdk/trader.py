@@ -51,6 +51,8 @@ class Trader(Perp):
     marginAvailable: str
     traderPositions: List[TraderPositionVer]
     totalTradedVolume: str
+    referralKey: Optional[PublicKey]
+    eventEmitter: PublicKey
 
     def __init__(self, perp: Perp):
         super(Trader, self).__init__(
@@ -66,7 +68,7 @@ class Trader(Perp):
             self.wallet.pubkey(), self.connection, self.ADDRESSES["DEX_ID"], self.ADDRESSES["MPG_ID"])
         return accounts
 
-    def create_trader_account_ixs(self):
+    def create_trader_account_ixs(self,  referralKey: Optional[PublicKey] = None):
         trgAddress = utils.getTraderRiskGroup(
             self.wallet.pubkey(), self.connection, self.ADDRESSES["DEX_ID"], self.ADDRESSES["MPG_ID"])
         if trgAddress != None:
@@ -88,6 +90,10 @@ class Trader(Perp):
                                        space=13744,
                                        owner=self.ADDRESSES["DEX_ID"])
         ix2 = create_account(crParams)
+        if referralKey == None:
+            referralKey = PublicKey.from_string("11111111111111111111111111111111");
+        
+        self.eventEmitter = utils.getEventEmitter(self.ADDRESSES['MPG_ID'], self.ADDRESSES['DEX_ID'])
         ix3 = initialize_trader_risk_group(
             owner=self.wallet.pubkey(),
             trader_risk_group=trg.pubkey(),
@@ -98,8 +104,8 @@ class Trader(Perp):
             trader_fee_state_acct=utils.get_trader_fee_state_acct(
                 trg.pubkey(), self.ADDRESSES["MPG_ID"], self.ADDRESSES["FEES_ID"]),
             risk_engine_program=self.ADDRESSES["RISK_ID"],
-            referral_key=PublicKey.from_string(
-                "11111111111111111111111111111111"),
+            referral_key=referralKey,
+            event_emitter= self.eventEmitter,
             system_program=SYS_PROGRAM_ID,
             program_id=self.ADDRESSES["DEX_ID"]
         )
@@ -149,15 +155,17 @@ class Trader(Perp):
 
         self.traderPositions = positions
         self.totalTradedVolume = self.traderRiskGroup.total_traded_volume.value
+        self.eventEmitter = utils.getEventEmitter(self.ADDRESSES['MPG_ID'], self.ADDRESSES['DEX_ID'])
     
     def deposit_funds_ix(self, amount: Fractional):
-        param = DepositFundsParams(amount)
+        param = DepositFundsParams(amount)  
         ix1 = deposit_funds(
             user=self.wallet.pubkey(),
             user_token_account=self.userTokenAccount,
             trader_risk_group=self.trgKey,
             market_product_group=self.ADDRESSES["MPG_ID"],
             market_product_group_vault=self.marketProductGroupVault,
+            event_emitter=self.eventEmitter,
             params=param,
             program_id=self.ADDRESSES["DEX_ID"]
         )
@@ -180,6 +188,7 @@ class Trader(Perp):
                                  self.traderRiskGroup.risk_state_account)),
                              utils.getRiskSigner(
                                  self.ADDRESSES["MPG_ID"], self.ADDRESSES["DEX_ID"]),
+                             self.eventEmitter,
                              param,
                              self.ADDRESSES["DEX_ID"],
                              [SYS_PROGRAM_ID, SYS_PROGRAM_ID, SYS_PROGRAM_ID, SYS_PROGRAM_ID, SYS_PROGRAM_ID,
@@ -205,6 +214,7 @@ class Trader(Perp):
                                 trader_risk_group.risk_state_account)),
                              utils.getRiskSigner(
                                  self.ADDRESSES["MPG_ID"], self.ADDRESSES["DEX_ID"]),
+                             self.eventEmitter,
                              param,
                              self.ADDRESSES["DEX_ID"],
                              [SYS_PROGRAM_ID, SYS_PROGRAM_ID, SYS_PROGRAM_ID, SYS_PROGRAM_ID, SYS_PROGRAM_ID,
@@ -283,6 +293,7 @@ class Trader(Perp):
                 self.traderRiskGroup.risk_state_account)),
             utils.getRiskSigner(
                 self.ADDRESSES["MPG_ID"], self.ADDRESSES["DEX_ID"]),
+            self.eventEmitter,
             newParams,
             self.ADDRESSES["DEX_ID"],
             SYS_PROGRAM_ID)
@@ -312,6 +323,7 @@ class Trader(Perp):
                 self.traderRiskGroup.risk_state_account)),
             utils.getRiskSigner(
                 self.ADDRESSES["MPG_ID"], self.ADDRESSES["DEX_ID"]),
+            self.eventEmitter,
             param,
             self.ADDRESSES["DEX_ID"],
             SYS_PROGRAM_ID)

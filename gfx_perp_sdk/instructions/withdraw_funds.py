@@ -35,6 +35,7 @@ class WithdrawFundsIx:
     risk_output_register: AccountMeta
     trader_risk_state_acct: AccountMeta
     risk_signer: AccountMeta
+    event_emitter: AccountMeta
     remaining_accounts: Optional[List[AccountMeta]]
 
     # data fields
@@ -54,6 +55,7 @@ class WithdrawFundsIx:
         keys.append(self.risk_output_register)
         keys.append(self.trader_risk_state_acct)
         keys.append(self.risk_signer)
+        keys.append(self.event_emitter)
         if self.remaining_accounts is not None:
             keys.extend(self.remaining_accounts)
 
@@ -83,6 +85,7 @@ def withdraw_funds(
     risk_output_register: Union[str, PublicKey, AccountMeta],
     trader_risk_state_acct: Union[str, PublicKey, AccountMeta],
     risk_signer: Union[str, PublicKey, AccountMeta],
+    event_emitter: Union[str, PublicKey, AccountMeta],
     params: WithdrawFundsParams,
     program_id: Union[str, PublicKey, AccountMeta],
     remaining_accounts: List[PublicKey],
@@ -164,6 +167,12 @@ def withdraw_funds(
             is_signer=False,
             is_writable=False,
         )
+    if isinstance(event_emitter, (str, PublicKey)):
+        event_emitter = to_account_meta(
+            event_emitter,
+            is_signer=False,
+            is_writable=True,
+        )
     remaining_metas: List[AccountMeta] = []
     for accounts in remaining_accounts:
         if isinstance(accounts, (str, PublicKey)):
@@ -188,6 +197,7 @@ def withdraw_funds(
         risk_output_register=risk_output_register,
         trader_risk_state_acct=trader_risk_state_acct,
         risk_signer=risk_signer,
+        event_emitter=event_emitter,
         remaining_accounts=remaining_metas,
         params=params,
     ).to_instruction()
