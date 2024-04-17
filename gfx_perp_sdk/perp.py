@@ -42,16 +42,23 @@ class Perp:
     mpgBytes: bytes
     connection: Client
     program: str #TODO: Change
-    wallet: Keypair 
+    wallet: Keypair
+    wallet_public_key: PublicKey
     networkType: NETWORK_TYPE
     ADDRESSES: ConstantIDs
 
     def __init__(self, connection: Client, 
       network_type: NETWORK_TYPE, 
-      wallet: Keypair, 
+      wallet: Keypair = None,
       mpg: MarketProductGroup = None, 
-      mpgBytes: bytes = None):
+      mpgBytes: bytes = None,
+      wallet_address: PublicKey = None):
+      if wallet is None and wallet_address is None:
+          raise ValueError("Either wallet or wallet_address must be provided.")
+      elif wallet is not None and wallet_address is not None:
+          raise ValueError("Provide either wallet or wallet_address, not both.")
       self.wallet = wallet
+      self.wallet_public_key = wallet.pubkey() if wallet is not None else wallet_address
       self.connection = connection
       self.networkType = network_type
       if self.networkType == "mainnet":

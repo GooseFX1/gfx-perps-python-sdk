@@ -58,15 +58,18 @@ class Trader(Perp):
             perp.networkType,
             perp.wallet,
             perp.marketProductGroup,
-            perp.mpgBytes
+            perp.mpgBytes,
+            perp.wallet_public_key
         )
 
     def get_all_trg_accounts(self):
         accounts = utils.getAllTraderRiskGroup(
-            self.wallet.pubkey(), self.connection, self.ADDRESSES["DEX_ID"], self.ADDRESSES["MPG_ID"])
+            self.wallet_public_key, self.connection, self.ADDRESSES["DEX_ID"], self.ADDRESSES["MPG_ID"])
         return accounts
 
     def create_trader_account_ixs(self):
+        if self.wallet is None:
+            raise ValueError("Wallet is required to create_trader_account_ixs")
         trgAddress = utils.getTraderRiskGroup(
             self.wallet.pubkey(), self.connection, self.ADDRESSES["DEX_ID"], self.ADDRESSES["MPG_ID"])
         if trgAddress != None:
@@ -127,13 +130,13 @@ class Trader(Perp):
     
     def init(self):
         trgAddress = utils.getTraderRiskGroup(
-            self.wallet.pubkey(), self.connection, self.ADDRESSES["DEX_ID"], self.ADDRESSES["MPG_ID"])
+            self.wallet_public_key, self.connection, self.ADDRESSES["DEX_ID"], self.ADDRESSES["MPG_ID"])
         if trgAddress == None:
             raise KeyError(
                 "No Trader Risk Group account for this wallet. Please create a new one first.")
         self.trgKey = PublicKey.from_string(trgAddress)
         self.traderRiskGroup = self.fetch_trader_risk_group()
-        self.userTokenAccount = utils.getUserAta(self.wallet.pubkey(), self.ADDRESSES['VAULT_MINT'])
+        self.userTokenAccount = utils.getUserAta(self.wallet_public_key, self.ADDRESSES['VAULT_MINT'])
         self.marketProductGroupVault = utils.getMpgVault(self.ADDRESSES['VAULT_SEED'], self.ADDRESSES['MPG_ID'], self.ADDRESSES['DEX_ID'])
         self.totalDeposited = self.traderRiskGroup.total_deposited.value / 100000
         self.totalWithdrawn = self.traderRiskGroup.total_withdrawn.value / 100000
@@ -151,6 +154,8 @@ class Trader(Perp):
         self.totalTradedVolume = self.traderRiskGroup.total_traded_volume.value
     
     def deposit_funds_ix(self, amount: Fractional):
+        if self.wallet is None:
+            raise ValueError("Wallet is required in deposit_funds_ix")
         param = DepositFundsParams(amount)
         ix1 = deposit_funds(
             user=self.wallet.pubkey(),
@@ -164,6 +169,8 @@ class Trader(Perp):
         return [[ix1], [self.wallet]]
 
     def withdraw_funds_ix(self, amount: Fractional):
+        if self.wallet is None:
+            raise ValueError("Wallet is required in withdraw_funds_ix")
         param = WithdrawFundsParams(amount)
         ix1 = withdraw_funds(self.wallet.pubkey(),
                              self.ADDRESSES["BUDDY_LINK_PROGRAM"],
@@ -188,6 +195,8 @@ class Trader(Perp):
         return [[ix1], [self.wallet]]
 
     def withdraw_funds_ix_for_trg(self, amount: Fractional, trgKey: PublicKey):
+        if self.wallet is None:
+            raise ValueError("Wallet is required in withdraw_funds_ix_for_trg")
         param = WithdrawFundsParams(amount)
         trader_risk_group = utils.get_trader_risk_group(self.connection, trgKey)
         ix1 = withdraw_funds(self.wallet.pubkey(),
@@ -218,6 +227,8 @@ class Trader(Perp):
                      order_type: OrderType, 
                      self_trade_behaviour: Optional[base.SelfTradeBehavior] = base.SelfTradeBehavior.DECREMENT_TAKE,  
                      callback_id: Optional[U32] = 0):
+        if self.wallet is None:
+            raise ValueError("Wallet is required in new_order_ix")
         # if side == 'bid':
         #     sideParam = base.Side.BID
         # elif side == 'ask':
@@ -290,6 +301,8 @@ class Trader(Perp):
         return [[ix1], [self.wallet]]
 
     def cancel_order_ix(self, product: Product, orderId):
+        if self.wallet is None:
+            raise ValueError("Wallet is required in cancel_order_ix")
         param = CancelOrderParams(orderId)
         ix1 = cancel_order(
             self.wallet.pubkey(),
@@ -319,6 +332,8 @@ class Trader(Perp):
         return [[ix1], [self.wallet]]
 
     def close_trader_risk_group_ix_for_trg(self, trgKey: PublicKey):
+        if self.wallet is None:
+            raise ValueError("Wallet is required in close_trader_risk_group_ix_for_trg")
         ix =  close_trader_risk_group(
             owner=self.wallet.pubkey(),
             trader_risk_group=trgKey,
