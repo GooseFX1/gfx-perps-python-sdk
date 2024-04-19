@@ -32,7 +32,8 @@ class Product(Perp):
         perp.networkType, 
         perp.wallet, 
         perp.marketProductGroup, 
-        perp.mpgBytes)
+        perp.mpgBytes,
+        perp.wallet_public_key)
 
     def init_by_index(self, index: int):
         products = None
