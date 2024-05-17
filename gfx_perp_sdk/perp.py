@@ -55,8 +55,6 @@ class Perp:
       wallet_address: PublicKey = None):
       if wallet is None and wallet_address is None:
           raise ValueError("Either wallet or wallet_address must be provided.")
-      elif wallet is not None and wallet_address is not None:
-          raise ValueError("Provide either wallet or wallet_address, not both.")
       self.wallet = wallet
       self.wallet_public_key = wallet.pubkey() if wallet is not None else wallet_address
       self.connection = connection
