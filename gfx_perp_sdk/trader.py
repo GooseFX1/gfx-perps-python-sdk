@@ -59,17 +59,19 @@ class Trader(Perp):
             super(Trader, self).__init__(
                 perp.connection,
                 perp.networkType,
-                wallet=perp.wallet,
-                mpg=perp.marketProductGroup,
-                mpgBytes=perp.mpgBytes
+                perp.wallet,
+                perp.marketProductGroup,
+                perp.mpgBytes,
+                None
             )
         else:
             super(Trader, self).__init__(
                 perp.connection,
                 perp.networkType,
-                wallet_address=perp.wallet_public_key,
-                mpg=perp.marketProductGroup,
-                mpgBytes=perp.mpgBytes
+                None,
+                perp.marketProductGroup,
+                perp.mpgBytes,
+                perp.wallet_public_key
             )
 
     def get_all_trg_accounts(self):

@@ -33,14 +33,15 @@ class Product(Perp):
             perp.networkType, 
             perp.wallet, 
             perp.marketProductGroup, 
-            perp.mpgBytes)
+            perp.mpgBytes,
+            None)
         else:
             super(Product, self).__init__(perp.connection, 
             perp.networkType, 
-            perp.wallet_address, 
+            None,
             perp.marketProductGroup, 
-            perp.mpgBytes)
-
+            perp.mpgBytes,
+            perp.wallet_public_key)
 
     def init_by_index(self, index: int):
         products = None
