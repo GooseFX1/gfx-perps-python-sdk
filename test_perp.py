@@ -82,27 +82,27 @@ async def test_create_trader_risk():
     print("\n response:", response)
     assert response != None
 
-@pytest.mark.skip(reason="This test will send transactions to the Solana network.")
-# @pytest.mark.asyncio
+# @pytest.mark.skip(reason="This test will send transactions to the Solana network.")
+@pytest.mark.asyncio
 async def test_trader_deposit_funds():
-    perp = Perp(rpc_client, 'devnet',keyp)
+    perp = Perp(rpc_client, 'mainnet',keyp)
     perp.init()
     t = Trader(perp) 
     t.init()
-    ix = t.deposit_funds_ix(Fractional.to_decimal(100))
-    response = utils.send_solana_transaction(rpc_client, keyp, ix[0], ix[1])
+    ix = t.deposit_funds_ix(Fractional.to_decimal(1))
+    response = utils.send_solana_transaction(rpc_client, keyp, ix[0], ix[1], 10000)
     print("\n response:", response)
     assert response != None
 
-@pytest.mark.skip(reason="This test will send transactions to the Solana network.")
-# @pytest.mark.asyncio
+# @pytest.mark.skip(reason="This test will send transactions to the Solana network.")
+@pytest.mark.asyncio
 async def test_trader_withdraw_funds():
-    perp = Perp(rpc_client, 'devnet',keyp)
+    perp = Perp(rpc_client, 'mainnet',keyp)
     perp.init()
     t = Trader(perp) 
     t.init()
-    ix = t.withdraw_funds_ix(Fractional.to_decimal(100))
-    response = utils.send_solana_transaction(rpc_client, keyp, ix[0], ix[1])
+    ix = t.withdraw_funds_ix(Fractional.to_decimal(0.01))
+    response = utils.send_solana_transaction(rpc_client, keyp, ix[0], ix[1], 10000)
     print("\n response:", response)
     assert response != None
 
@@ -130,7 +130,7 @@ async def test_trader_new_order_single():
     t = Trader(perp) 
     t.init()
     ix = t.new_order_ix(product, Fractional.to_decimal(50000), Fractional.to_decimal(35), side=Side.ASK, order_type=OrderType.LIMIT)
-    response = utils.send_solana_transaction(rpc_client, keyp, ix[0], ix[1])
+    response = utils.send_solana_transaction(rpc_client, keyp, ix[0], ix[1], 10000)
     print("\n response: ", response)
     assert response != None
 
