@@ -108,8 +108,10 @@ def processOrderbook(bidsParam, asksParams, tickSize, decimals):
     return result
 
 def processL3Ob(bidsParam: List[SlabOrderInfo], asksParams: List[SlabOrderInfo], tickSize: int, decimals: int):
-    result: Dict[str, List[L3OrderbookInfo]] = {}
-    result["bids"]: List[L3OrderbookInfo] = []
+    result: Dict[str, List[L3OrderbookInfo]] = {
+        "bids": [],
+        "asks": []
+    }
     if bidsParam is not None:
         for bids in bidsParam:
             result["bids"].append(
@@ -122,7 +124,6 @@ def processL3Ob(bidsParam: List[SlabOrderInfo], asksParams: List[SlabOrderInfo],
                     callBackId=bids.callBackId
                 )
             )
-    result["asks"]: List[L3OrderbookInfo] = []
     if asksParams is not None:
         for asks in asksParams:
             result["asks"].append(
@@ -138,8 +139,10 @@ def processL3Ob(bidsParam: List[SlabOrderInfo], asksParams: List[SlabOrderInfo],
     return result
 
 def process_deserialized_slab_data(bidDeserialized: Slab, askDeserialized: Slab):
-    result: Dict[str, List[SlabOrderInfo]] = {}
-    result["bids"]: List[SlabOrderInfo] = []
+    result: Dict[str, List[SlabOrderInfo]] = {
+        "bids": [],
+        "asks": []
+    }
     if bidDeserialized is not None:
         for bids in bidDeserialized.items():
             price = bids[0].getPrice()
@@ -157,7 +160,6 @@ def process_deserialized_slab_data(bidDeserialized: Slab, askDeserialized: Slab)
                     callBackId=callBackId
                 )
             )
-    result["asks"]: List[SlabOrderInfo] = []
     if askDeserialized is not None:
         for asks in askDeserialized.items():
             price = asks[0].getPrice()
@@ -288,10 +290,15 @@ def getRiskSigner(MPG_ID: PublicKey, DEX_ID: PublicKey):
     res = PublicKey.find_program_address([MPG_ID.__bytes__()], DEX_ID)
     return res[0]
 
+def getEventEmitter(MPG_ID: PublicKey, DEX_ID: PublicKey):
+    res= PublicKey.find_program_address(['event-emitter'.encode('utf-8'), MPG_ID.__bytes__()], DEX_ID)
+    return res[0]
+
 def filterOpenOrders(l3ob: dict[str, List[L3OrderbookInfo]], trader: str):
-    result: Dict[str, List[L3OrderbookInfo]] = {}
-    result["bids"]: List[L3OrderbookInfo] = []
-    result['asks']: List[L3OrderbookInfo] = []
+    result: Dict[str, List[L3OrderbookInfo]] = {
+        "bids": [],
+        "asks": []
+    }
 
     for bids in l3ob['bids']:
         if bids.user == trader:

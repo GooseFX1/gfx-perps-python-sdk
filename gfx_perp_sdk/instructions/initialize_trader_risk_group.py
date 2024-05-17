@@ -31,6 +31,7 @@ class InitializeTraderRiskGroupIx:
     risk_engine_program: AccountMeta
     system_program: AccountMeta
     referral_key: AccountMeta
+    event_emitter: AccountMeta
     remaining_accounts: Optional[List[AccountMeta]]
 
     def to_instruction(self):
@@ -44,6 +45,7 @@ class InitializeTraderRiskGroupIx:
         keys.append(self.risk_engine_program)
         keys.append(self.system_program)
         keys.append(self.referral_key)
+        keys.append(self.event_emitter)
         if self.remaining_accounts is not None:
             keys.extend(self.remaining_accounts)
 
@@ -70,6 +72,7 @@ def initialize_trader_risk_group(
     trader_fee_state_acct: Union[str, PublicKey, AccountMeta],
     risk_engine_program: Union[str, PublicKey, AccountMeta],
     referral_key: Union[str, PublicKey, AccountMeta],
+    event_emitter: Union[str, PublicKey, AccountMeta],
     system_program: Union[str, PublicKey, AccountMeta] = PublicKey.from_string(
         "11111111111111111111111111111111"),
     remaining_accounts: Optional[List[AccountMeta]] = None,
@@ -134,7 +137,12 @@ def initialize_trader_risk_group(
             is_signer=False,
             is_writable=False,
         )
-
+    if isinstance(event_emitter, (str, PublicKey)):
+        event_emitter = to_account_meta(
+            event_emitter,
+            is_signer=False,
+            is_writable=True,
+        )
     return InitializeTraderRiskGroupIx(
         program_id=program_id,
         owner=owner,
@@ -146,6 +154,7 @@ def initialize_trader_risk_group(
         risk_engine_program=risk_engine_program,
         system_program=system_program,
         referral_key=referral_key,
+        event_emitter=event_emitter,
         remaining_accounts=remaining_accounts,
     ).to_instruction()
 

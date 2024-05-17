@@ -28,12 +28,20 @@ class Product(Perp):
     events: List[FillEventInfo]
 
     def __init__(self, perp: Perp):
-        super(Product, self).__init__(perp.connection, 
-        perp.networkType, 
-        perp.wallet, 
-        perp.marketProductGroup, 
-        perp.mpgBytes,
-        perp.wallet_public_key)
+        if perp.wallet is not None:
+            super(Product, self).__init__(perp.connection, 
+            perp.networkType, 
+            perp.wallet, 
+            perp.marketProductGroup, 
+            perp.mpgBytes,
+            None)
+        else:
+            super(Product, self).__init__(perp.connection, 
+            perp.networkType, 
+            None,
+            perp.marketProductGroup, 
+            perp.mpgBytes,
+            perp.wallet_public_key)
 
     def init_by_index(self, index: int):
         products = None
