@@ -9,16 +9,15 @@ from solders.keypair import Keypair
 from gfx_perp_sdk.types.order_type import OrderType
 
 #recommend using dedicated RPC
-rpc_client = Client("https://api.devnet.solana.com")
+rpc_client = Client("https://api.mainnet-beta.solana.com")
 # Insert your Keypair to test it locally
 keyp = Keypair.from_bytes([])
 
 pytest_plugins = ('pytest_asyncio',)
 
 
-@pytest.mark.skip(reason="This test will send transactions to the Solana network.")
-# @pytest.mark.asyncio
-async def test_perp_init():
+@pytest.mark.asyncio
+async def test_perp_init_with_keypair():
     perp = Perp(rpc_client, 'mainnet', keyp)
     assert perp.wallet != None
     assert perp.connection != None
@@ -27,17 +26,33 @@ async def test_perp_init():
     perp.init()
     assert perp.marketProductGroup != None
 
-@pytest.mark.skip(reason="This test will send transactions to the Solana network.")
-# @pytest.mark.asyncio
-async def test_product_init():
+@pytest.mark.asyncio
+async def test_perp_init_with_wallet_address():
+    perp = Perp(rpc_client, 'mainnet', None, None, None, keyp.pubkey())
+    assert perp.wallet_public_key != None
+    assert perp.connection != None
+    assert perp.networkType != None
+
+    perp.init()
+    assert perp.marketProductGroup != None
+
+@pytest.mark.asyncio
+async def test_product_init_with_keypair():
+    perp = Perp(rpc_client, 'mainnet', keyp)
+    perp.init()
+    product = Product(perp)
+    product.init_by_name('SOL-PERP')
+    assert product.PRODUCT_ID != None
+
+@pytest.mark.asyncio
+async def test_product_init_with_wallet_address():
     perp = Perp(rpc_client, 'mainnet', None, None, None, keyp.pubkey())
     perp.init()
     product = Product(perp)
     product.init_by_name('SOL-PERP')
     assert product.PRODUCT_ID != None
 
-@pytest.mark.skip(reason="This test will send transactions to the Solana network.")
-# @pytest.mark.asyncio
+@pytest.mark.asyncio
 async def test_product_orderbooks():
     perp = Perp(rpc_client, 'mainnet', keyp)
     perp.init()
@@ -51,8 +66,7 @@ async def test_product_orderbooks():
     assert len(orderbookL3['bids']) != 0
     assert len(orderbookL3['asks']) != 0
 
-@pytest.mark.skip(reason="This test will send transactions to the Solana network.")
-# @pytest.mark.asyncio
+@pytest.mark.asyncio
 async def test_product_trades():
     perp = Perp(rpc_client, 'mainnet', keyp)
     perp.init()
@@ -61,10 +75,18 @@ async def test_product_trades():
     trades = product.get_trades()
     assert len(trades) > 0
 
-@pytest.mark.skip(reason="This test will send transactions to the Solana network.")
-# @pytest.mark.asyncio
-async def test_trader_init():
+@pytest.mark.asyncio
+async def test_trader_init_with_keypair():
     perp = Perp(rpc_client, 'mainnet',keyp)
+    perp.init()
+    t = Trader(perp)
+    t.init()
+    assert t.traderRiskGroup != None
+    assert t.userTokenAccount != None
+
+@pytest.mark.asyncio
+async def test_trader_init_with_wallet_address():
+    perp = Perp(rpc_client, 'mainnet', None, None, None, keyp.pubkey())
     perp.init()
     t = Trader(perp)
     t.init()
@@ -82,8 +104,8 @@ async def test_create_trader_risk():
     print("\n response:", response)
     assert response != None
 
-# @pytest.mark.skip(reason="This test will send transactions to the Solana network.")
-@pytest.mark.asyncio
+@pytest.mark.skip(reason="This test will send transactions to the Solana network.")
+# @pytest.mark.asyncio
 async def test_trader_deposit_funds():
     perp = Perp(rpc_client, 'mainnet',keyp)
     perp.init()
@@ -94,8 +116,8 @@ async def test_trader_deposit_funds():
     print("\n response:", response)
     assert response != None
 
-# @pytest.mark.skip(reason="This test will send transactions to the Solana network.")
-@pytest.mark.asyncio
+@pytest.mark.skip(reason="This test will send transactions to the Solana network.")
+# @pytest.mark.asyncio
 async def test_trader_withdraw_funds():
     perp = Perp(rpc_client, 'mainnet',keyp)
     perp.init()
@@ -106,8 +128,7 @@ async def test_trader_withdraw_funds():
     print("\n response:", response)
     assert response != None
 
-# @pytest.mark.asyncio
-@pytest.mark.skip(reason="This test will send transactions to the Solana network.")
+@pytest.mark.asyncio
 async def test_trader_open_orders():
     perp = Perp(rpc_client, 'mainnet',keyp)
     perp.init()
@@ -291,8 +312,8 @@ async def test_get_all_trg_accounts():
     assert result != None
 
 
-# @pytest.mark.asyncio
-@pytest.mark.skip(reason="This test will send transactions to the Solana network.")
+@pytest.mark.asyncio
+# @pytest.mark.skip(reason="This test will send transactions to the Solana network.")
 async def test_get_trader_positions():
     perp = Perp(rpc_client, 'mainnet', keyp)
     perp.init()
